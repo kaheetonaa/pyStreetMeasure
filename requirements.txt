@@ -1,0 +1,49 @@
+# Core dependencies
+torch>=2.0.0
+torchvision
+einops
+huggingface_hub
+numpy<2
+opencv-python
+
+# Gradio and Spaces
+gradio>=5.0.0
+spaces
+pillow>=9.0
+evo
+
+# 3D and visualization
+trimesh
+open3d-python
+plyfile
+
+# Image processing
+imageio
+pillow_heif
+safetensors
+
+# Video processing
+moviepy==1.0.3
+
+# Math and geometry
+e3nn
+
+# Utilities
+requests
+omegaconf
+typer>=0.9.0
+
+# Web frameworks (if using API features)
+fastapi
+uvicorn
+
+# xformers - commented out due to potential build issues on Spaces
+# If needed, uncomment and use a version compatible with your PyTorch/CUDA:
+# xformers==0.0.22
+# Or install after deployment: pip install xformers --no-deps
+
+# 3D Gaussian Splatting
+# Note: This requires CUDA during build. If build fails on Spaces, see alternative solutions.
+# gsplat @ https://github.com/nerfstudio-project/gsplat/releases/download/v1.5.3/gsplat-1.5.3+pt24cu124-cp310-cp310-linux_x86_64.whl
+gsplat==1.5.3
+

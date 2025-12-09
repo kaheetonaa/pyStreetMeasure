@@ -1,0 +1,41 @@
+# Basic requirements without gsplat (for faster build)
+# Use this if gsplat build fails on HF Spaces
+# To use: rename this to requirements.txt
+
+# Core dependencies
+torch>=2.0.0
+torchvision
+einops
+huggingface_hub
+numpy<2
+opencv-python
+
+# Gradio and Spaces
+gradio>=5.0.0
+spaces
+pillow>=9.0
+
+# 3D and visualization
+trimesh
+open3d
+plyfile
+
+# Image processing
+imageio
+pillow_heif
+safetensors
+
+# Video processing
+moviepy==1.0.3
+
+# Math and geometry
+e3nn
+
+# Utilities
+requests
+omegaconf
+# xformers not included - code has PyTorch fallback
+
+# NOTE: gsplat is NOT included in this version
+# 3DGS features will be disabled
+
