@@ -38,3 +38,4 @@ ENV/
 *.log
 
 model/
+da3-output/
