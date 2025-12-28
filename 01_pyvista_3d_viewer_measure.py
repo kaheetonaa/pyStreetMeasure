@@ -1,8 +1,7 @@
 import pyvista
 import numpy as np
 pl=pyvista.Plotter()
-pl.import_gltf('da3-output/scene.glb')
-p0=[]
+pl.import_gltf("da3-output/scene.glb")
 p1=[]
 p_order=0
 def callback(point):
@@ -19,4 +18,5 @@ def callback(point):
 
 
 pl.enable_point_picking(callback=callback)
+print(pl)
 pl.show()

@@ -47,3 +47,5 @@ uvicorn
 # gsplat @ https://github.com/nerfstudio-project/gsplat/releases/download/v1.5.3/gsplat-1.5.3+pt24cu124-cp310-cp310-linux_x86_64.whl
 gsplat==1.5.3
 
+pyvista
+
