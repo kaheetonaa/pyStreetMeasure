@@ -18,13 +18,13 @@ MODEL_DIR = os.environ.get("DA3_MODEL_DIR", "depth-anything/DA3NESTED-GIANT-LARG
 # Lower processing resolution to make CPU inference feasible.
 # Increase if you want better quality but expect it to be much slower.
 PROCESS_RES = int(os.environ.get("DA3_PROCESS_RES", "384"))
-
+CONF = 40
 # ---------------------------
 # Model loading (CPU)
 # ---------------------------
 print(f"🔄 Loading DepthAnything3 from '{MODEL_DIR}' on CPU (this may take a moment)...")
 # Uses the PyTorchModelHubMixin.from_pretrained you have in the class
-model = DepthAnything3.from_pretrained(MODEL_DIR)
+model = DepthAnything3.from_pretrained("model/",local_files_only=True)
 model.to(torch.device("cpu"))
 model.eval()
 print("✅ Model ready on CPU")
@@ -58,7 +58,7 @@ def depth_measure(depth: np.ndarray,coord: np.ndarray) -> float:
     return depth[coord[0]][coord[1]]
     
 
-def run_depth(single_img: Image.Image, process_res: int = PROCESS_RES, x_coord:int=0, y_coord:int =0):
+def run_depth(single_img: Image.Image, process_res: int = PROCESS_RES,conf: int =CONF, x_coord:int=0, y_coord:int =0):
     """
     Run single-image depth inference with the patched DepthAnything3 API.
     Returns a grayscale PIL image visualizing depth.
@@ -76,6 +76,9 @@ def run_depth(single_img: Image.Image, process_res: int = PROCESS_RES, x_coord:i
             process_res_method="upper_bound_resize",
             export_dir="da3-output",
             export_format="mini_npz-glb",
+            conf_thresh_percentile=conf,
+            show_cameras=False
+
         )
     except Exception as e:
         # If inference raises, return a helpful message image
@@ -153,7 +156,8 @@ app = gr.Interface(
     fn=run_depth,
     inputs=[
         gr.Image(type="pil", label="Upload image"),
-        gr.Slider(minimum=128, maximum=1024, step=64, value=PROCESS_RES, label="Process resolution (smaller = faster)")],
+        gr.Slider(minimum=128, maximum=1024, step=64, value=PROCESS_RES, label="Process resolution (smaller = faster)"),	
+        gr.Slider(minimum=0, maximum=100, step=1, value=CONF, label="Confidence Threshold (smaller = more exported points)")],
        # gr.Number(label='x_coord'),
        # gr.Number(label='y_coord')],
     outputs=gr.Image(label="Predicted depth (grayscale)"),
