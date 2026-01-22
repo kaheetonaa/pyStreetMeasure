@@ -75,7 +75,7 @@ def run_depth(single_img: Image.Image, process_res: int = PROCESS_RES,conf: int 
             process_res=process_res,
             process_res_method="upper_bound_resize",
             export_dir="da3-output",
-            export_format="mini_npz-glb",
+            export_format="npz-glb",
             conf_thresh_percentile=conf,
             show_cameras=False
 
