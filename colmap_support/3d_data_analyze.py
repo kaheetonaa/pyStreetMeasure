@@ -33,20 +33,19 @@ def threeD_to_twoD_reproject(params,image):
     ROT=np.array(image.qvec2rotmat())
     T=np.array(image.tvec)
     extrinsic=np.c_[ROT,T]
-    cx,cy,f,k=params
-    print(k)
+    f,cx,cy,k=params
     for i in range(len(points3D_coord)):
         p1=np.r_[np.array(points3D_coord[i]).T,np.array([1])]
         xreproj,yreproj,z=intrinsic.dot(extrinsic).dot(p1)
         if z>0:
-            xreproj=xreproj/z
-            yreproj=yreproj/z
+            xreproj=(xreproj/z-cx)/f
+            yreproj=(yreproj/z-cy)/f
             r2=xreproj**2 + yreproj**2
             factor= 1 + k*r2
-            xreproj=cx + f*factor *xreproj
-            yreproj=cy + f*factor *yreproj
+            xreproj=float(cx + f*factor *xreproj)
+            yreproj=float(cy + f*factor *yreproj)
             x2d,y2d=points2D[i]
             df.loc[len(df)]=[x2d,y2d,xreproj,yreproj,z]
     return(df)
-threeD_to_twoD_reproject(params,images[1])
+print(threeD_to_twoD_reproject(params,images[1]))
 
