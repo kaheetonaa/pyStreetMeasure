@@ -7,10 +7,20 @@ from viser.extras.colmap import (
     read_images_binary,
     read_points3d_binary,
 )
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+
 print('Done importing viser')
 np.set_printoptions(precision=3)
 path="model/"
 
+print("------------Import MDE data------------------")
+with open('depth.npy','rb') as f:
+    mde_input=np.load(f)
+print(mde_input.shape)
+
+print("---------Import COLMAP data------------------")
 cameras=read_cameras_binary(path+"sparse/0/cameras.bin")
 images=read_images_binary(path+"sparse/0/images.bin")
 points3D=read_points3d_binary(path+"sparse/0/points3D.bin")
@@ -26,7 +36,7 @@ print("----------------3D to 2D--------------------")
 print(cameras[1].params)
 params=cameras[1].params
 def threeD_to_twoD_reproject(params,image):
-    df=pd.DataFrame(columns=['x2d','y2d','xreproj','yreproj','z'])
+    df=pd.DataFrame(columns=['x2d','y2d','xreproj','yreproj','z','depth'])
     intrinsic=np.array([[params[0],0,params[1]],
                     [0,params[0],params[2]],
                     [0,0,1]])
@@ -45,7 +55,20 @@ def threeD_to_twoD_reproject(params,image):
             xreproj=float(cx + f*factor *xreproj)
             yreproj=float(cy + f*factor *yreproj)
             x2d,y2d=points2D[i]
-            df.loc[len(df)]=[x2d,y2d,xreproj,yreproj,z]
+            df.loc[len(df)]=[x2d,y2d,xreproj,yreproj,z,mde_input[int(y2d),int(x2d)]]
     return(df)
-print(threeD_to_twoD_reproject(params,images[1]))
+df=threeD_to_twoD_reproject(params,images[1])
+print(df)
 
+print("----------------Training--------------------")
+
+X=df[['x2d','y2d','depth']]
+y=df['z']
+X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.15,shuffle=False)
+regressor = LinearRegression().fit(X_train, y_train)
+print('done training','weight', regressor.coef_,'bias',regressor.intercept_)
+
+y_pred = regressor.predict(X_test)
+
+print(f"Mean squared error: {mean_squared_error(y_test, y_pred):.2f}")
+print(f"Coefficient of determination: {r2_score(y_test, y_pred):.2f}")
