@@ -56,18 +56,22 @@ def threeD_to_twoD_reproject(params,image):
     return(df)
 
 def twoD_to_threeD_reproject(params,image,predict):
+    for i in predict:
+        i[0]=i[0]*i[2]
+        i[1]=i[1]*i[2]
     f,cx,cy,k=params
     ROT=np.array(image.qvec2rotmat())
     T=np.array(image.tvec)
     print(T)
-    p3D=((np.linalg.inv(intrinsic)@np.linalg.inv(ROT))@predict.T).T#-T
-    return p3D
+    p3D_cam = np.linalg.inv(intrinsic) @ predict.T  # normalize
+    p3D_world = np.linalg.inv(ROT) @ (p3D_cam - T[:, None])
+    return p3D_world.T
 
 df=threeD_to_twoD_reproject(params,images[1])
 print(df)
 print("----------------Training--------------------")
 
-X=df[:,[0,1,7]]
+X=df[:,[7]]
 y=df[:,6]
 X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.15,shuffle=False)
 regressor = LinearRegression().fit(X_train, y_train)
@@ -79,12 +83,13 @@ print(f"Coefficient of determination: {r2_score(y_test, y_pred):.2f}")
 
 #mde_df=pd.DataFrame(columns=['x2d','y2d','depth'])
 mde_df=[np.array([0,0,0])]
-for c in range(0,len(mde_input),50):
-    for r in range(0,len(mde_input[0]),50):
-        mde_df=np.r_[mde_df,[[c,r,mde_input[c,r]]]]
+for r in range(0,len(mde_input),25):
+    for c in range(0,len(mde_input[0]),25):
+        mde_df=np.r_[mde_df,[[c,r,mde_input[r,c]]]]
 mde_df=mde_df[1:]
+mde_before=mde_df
 
-mde_predict=regressor.predict(mde_df)
+mde_predict=regressor.predict(mde_df[:,[2]])
 
 mde_df=mde_df[:,:2]
 
@@ -93,10 +98,7 @@ mde_df=np.c_[mde_df,mde_predict]
 mde_df= mde_df[mde_df[:,2]>0]
 
 
-for i in mde_df:
-    i[0]=i[0]*i[2]
-    i[1]=i[1]*i[2]
-
+before=twoD_to_threeD_reproject(params,images[1],mde_before)
 dense=twoD_to_threeD_reproject(params,images[1],mde_df)
 print("----------------Visualization--------------------")
 
@@ -109,8 +111,21 @@ def main():
             name="dense",
             points=dense,
             colors=colors,
-            point_size=1
+            point_size=.05
             )
+    server.scene.add_point_cloud(
+            name="sparse",
+            points=np.array(points3D_coord),
+            colors=np.array([255,0,0]),
+            point_size=.05
+            )
+    server.scene.add_point_cloud(
+            name="non-finetuned",
+            points=before,
+            colors=np.array([0,0,255]),
+            point_size=.05
+            )
+
     while True:
         pass
 
