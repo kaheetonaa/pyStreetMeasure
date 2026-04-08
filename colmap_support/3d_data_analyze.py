@@ -11,9 +11,12 @@ np.set_printoptions(precision=3)
 path="model/"
 
 print("------------Import MDE data------------------")
+with open('intrinsics.npy','rb') as f:
+    mde_intrinsic=np.load(f)
 with open('depth.npy','rb') as f:
     mde_input=np.load(f)
-print(mde_input.shape)
+print(mde_input.shape,mde_intrinsic.shape)
+
 
 print("---------Import COLMAP data------------------")
 cameras=colmap.read_cameras_binary(path+"sparse/0/cameras.bin")
@@ -28,10 +31,10 @@ points3D_coord=[points3D[i].xyz for i in points3D_ids]
 print("----------------3D to 2D--------------------")
 print(cameras[1].params)
 params=cameras[1].params
-intrinsic=np.array([[params[0],0,params[1]],
+col_intrinsic=np.array([[params[0],0,params[1]],
                     [0,params[0],params[2]],
                     [0,0,1]])
-def threeD_to_twoD_reproject(params,image):
+def threeD_to_twoD_reproject(intrinsic,params,image):
     #df=pd.DataFrame(columns=['x2d','y2d','xreproj','yreproj','deltax','deltay','z','depth'])
     df=[np.zeros(8)]
     f,cx,cy,k=params
@@ -55,19 +58,17 @@ def threeD_to_twoD_reproject(params,image):
     df=df[1:]
     return(df)
 
-def twoD_to_threeD_reproject(params,image,predict):
-    for i in predict:
-        i[0]=i[0]*i[2]
-        i[1]=i[1]*i[2]
+def twoD_to_threeD_reproject(intrinsic,params,image,predict,weight,bias):
     f,cx,cy,k=params
     ROT=np.array(image.qvec2rotmat())
     T=np.array(image.tvec)
     print(T)
     p3D_cam = np.linalg.inv(intrinsic) @ predict.T  # normalize
-    p3D_world = np.linalg.inv(ROT) @ (p3D_cam - T[:, None])
+    p3D_scale=p3D_cam*weight+np.array([[0,0,bias] for i in range(len(predict))]).T
+    p3D_world = np.linalg.inv(ROT) @ (p3D_scale - T[:, None])
     return p3D_world.T
 
-df=threeD_to_twoD_reproject(params,images[1])
+df=threeD_to_twoD_reproject(col_intrinsic,params,images[1])
 print(df)
 print("----------------Training--------------------")
 
@@ -87,30 +88,31 @@ for r in range(0,len(mde_input),25):
     for c in range(0,len(mde_input[0]),25):
         mde_df=np.r_[mde_df,[[c,r,mde_input[r,c]]]]
 mde_df=mde_df[1:]
-mde_before=mde_df
+for i in mde_df:
+        i[0]=i[0]*i[2]
+        i[1]=i[1]*i[2]
 
-mde_predict=regressor.predict(mde_df[:,[2]])
+#mde_predict=regressor.predict(mde_df[:,[2]])
 
-mde_df=mde_df[:,:2]
+#mde_df=mde_df[:,:2]
 
-mde_df=np.c_[mde_df,mde_predict]
+#mde_df=np.c_[mde_df,mde_predict]
 
-mde_df= mde_df[mde_df[:,2]>0]
+#mde_df= mde_df[mde_df[:,2]>0]
 
 
-before=twoD_to_threeD_reproject(params,images[1],mde_before)
-dense=twoD_to_threeD_reproject(params,images[1],mde_df)
+before=twoD_to_threeD_reproject(mde_intrinsic,params,images[1],mde_df,1,0)#regressor.coef_,regressor.intercept_)
+dense=twoD_to_threeD_reproject(col_intrinsic,params,images[1],mde_df,regressor.coef_,regressor.intercept_)
 print("----------------Visualization--------------------")
 
-print(dense)
+#print(dense)
 
 def main():
     server = viser.ViserServer()
-    colors = np.zeros((dense.shape[0], 3), dtype=np.uint8)
     server.scene.add_point_cloud(
             name="dense",
             points=dense,
-            colors=colors,
+            colors=np.array([0,255,0]),
             point_size=.05
             )
     server.scene.add_point_cloud(
