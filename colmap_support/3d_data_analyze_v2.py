@@ -35,7 +35,7 @@ col_intrinsic=np.array([[params[0],0,params[1]],
                     [0,params[0],params[2]],
                     [0,0,1]])
 def world_to_cam_reproject(params,image):
-    #df=pd.DataFrame(columns=['x2d','y2d','xreproj','yreproj','z'])
+    #'x2d','y2d','xreproj','yreproj','z'
     df=[np.zeros(5)]
     f,cx,cy,k=params
     ROT=np.array(image.qvec2rotmat())
@@ -49,37 +49,64 @@ def world_to_cam_reproject(params,image):
     return(df)
 
 def twoD_to_cam_reproject(intrinsic,params,image,depth):
+    #'x3d','y3d','z',"x2d",y2d
     f,cx,cy,k=params
     ROT=np.array(image.qvec2rotmat())
     T=np.array(image.tvec)
     print(T)
     p3D_cam = np.linalg.inv(intrinsic) @ depth.T  # normalize
-    return p3D_cam.T
+    p3D=np.c_[p3D_cam.T,depth[:,:2]]
+    return p3D
 
 df=world_to_cam_reproject(params,images[1])
 print(df)
 print("----------------Training--------------------")
 
-#X=df[:,[7]]
-#y=df[:,6]
-#X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.15,shuffle=False)
-#regressor = LinearRegression().fit(X_train, y_train)
-#print('done training','weight', regressor.coef_,'bias',regressor.intercept_)
-#y_pred = regressor.predict(X_test)
+def LeastSquared(X,y,title):
+    print(X.shape,y.shape)
+    X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.15,shuffle=False)
+    regressor = LinearRegression().fit(X_train, y_train)
+    weight= regressor.coef_
+    bias=regressor.intercept_
+    print('done training ',title,'weight', weight,'bias',bias)
+    y_pred = regressor.predict(X_test)
 
-#print(f"Mean squared error: {mean_squared_error(y_test, y_pred):.2f}")
-#print(f"Coefficient of determination: {r2_score(y_test, y_pred):.2f}")
+    print(f"Mean squared error: {mean_squared_error(y_test, y_pred):.2f}")
+    print(f"Coefficient of determination: {r2_score(y_test, y_pred):.2f}")
+    return [weight,bias]
 
-mde_df=[np.array([0,0,0])]
-for r in range(0,len(mde_input),25):
-    for c in range(0,len(mde_input[0]),25):
-        mde_df=np.r_[mde_df,[[c,r,mde_input[r,c]]]]
-mde_df=mde_df[1:]
-for i in mde_df:
-        i[0]=i[0]*i[2]
-        i[1]=i[1]*i[2]
+def MDE_filter(mde_input,filter_array):
+    #input: mde row:y column:x att:depth; filter_array:[x,y]
+    mde_df=[np.array([0,0,0])]
+    for j in filter_array:
+        mde_df=np.r_[mde_df,[[int(j[0]),int(j[1]),mde_input[int(j[1]),int(j[0])]]]]
+    mde_df=mde_df[1:]
+    for i in mde_df:
+            i[0]=i[0]*i[2]
+            i[1]=i[1]*i[2]
+    return mde_df
 
-before=twoD_to_cam_reproject(mde_intrinsic,params,images[1],mde_df)
+dense_array=np.array([[0,0]])
+for i in range(0,mde_input.shape[1],50):
+    for j in range(0,mde_input.shape[0],50):
+        dense_array=np.r_[dense_array,np.array([[i,j]])]
+dense_array=dense_array[1:]
+
+
+before=twoD_to_cam_reproject(mde_intrinsic,params,images[1],MDE_filter(mde_input,df))
+after=twoD_to_cam_reproject(mde_intrinsic,params,images[1],MDE_filter(mde_input,df))
+dense=twoD_to_cam_reproject(mde_intrinsic,params,images[1],MDE_filter(mde_input,dense_array))
+x_scale=LeastSquared(before[:,[0]],df[:,2],"x")
+y_scale=LeastSquared(before[:,[1]],df[:,3],"y")
+z_scale=LeastSquared(before[:,[2]],df[:,4],"z")
+after[:,0]=after[:,0]*x_scale[0]+x_scale[1]
+after[:,1]=after[:,1]*y_scale[0]+y_scale[1]
+after[:,2]=after[:,2]*z_scale[0]+z_scale[1]
+
+dense[:,0]=dense[:,0]*x_scale[0]+x_scale[1]
+dense[:,1]=dense[:,1]*y_scale[0]+y_scale[1]
+dense[:,2]=dense[:,2]*z_scale[0]+z_scale[1]
+
 print("----------------Visualization--------------------")
 
 #print(dense)
@@ -90,13 +117,25 @@ def main():
             name="sparse",
             points=np.array(points3D_coord),
             colors=np.array([255,0,0]),
-            point_size=.05
+            point_size=.5
             )
     server.scene.add_point_cloud(
             name="non-finetuned",
-            points=before,
+            points=before[:,:3],
             colors=np.array([0,0,255]),
-            point_size=.05
+            point_size=.1
+            )
+    server.scene.add_point_cloud(
+            name="finetuned",
+            points=after[:,:3],
+            colors=np.array([0,255,0]),
+            point_size=.1
+            )
+    server.scene.add_point_cloud(
+            name="dense",
+            points=dense[:,:3],
+            colors=np.array([0,0,0]),
+            point_size=.1
             )
 
     while True:
