@@ -49,18 +49,79 @@ def world_to_cam_reproject(params,image):
     return(df)
 
 def twoD_to_cam_reproject(intrinsic,params,image,depth):
-    #'x3d','y3d','z',"x2d",y2d
+    #"x2d",y2d,'x3d','y3d','z'
     f,cx,cy,k=params
     ROT=np.array(image.qvec2rotmat())
     T=np.array(image.tvec)
     print(T)
     p3D_cam = np.linalg.inv(intrinsic) @ depth.T  # normalize
-    p3D=np.c_[p3D_cam.T,depth[:,:2]]
+    p3D=np.c_[depth[:,:2],p3D_cam.T]
     return p3D
 
 df=world_to_cam_reproject(params,images[1])
 print(df)
 print("----------------Training--------------------")
+
+
+import numpy as np
+
+
+def umeyama(X, Y):
+    """
+    Estimates the Sim(3) transformation between `X` and `Y` point sets.
+
+    Estimates c, R and t such as c * R @ X + t ~ Y.
+
+    Parameters
+    ----------
+    X : numpy.array
+        (m, n) shaped numpy array. m is the dimension of the points,
+        n is the number of points in the point set.
+    Y : numpy.array
+        (m, n) shaped numpy array. Indexes should be consistent with `X`.
+        That is, Y[:, i] must be the point corresponding to X[:, i].
+    
+    Returns
+    -------
+    c : float
+        Scale factor.
+    R : numpy.array
+        (3, 3) shaped rotation matrix.
+    t : numpy.array
+        (3, 1) shaped translation vector.
+    """
+    mu_x = X.mean(axis=1).reshape(-1, 1)
+    mu_y = Y.mean(axis=1).reshape(-1, 1)
+    var_x = np.square(X - mu_x).sum(axis=0).mean()
+    cov_xy = ((Y - mu_y) @ (X - mu_x).T) / X.shape[1]
+    U, D, VH = np.linalg.svd(cov_xy)
+    S = np.eye(X.shape[0])
+    if np.linalg.det(U) * np.linalg.det(VH) < 0:
+        S[-1, -1] = -1
+    c = np.trace(np.diag(D) @ S) / var_x
+    R = U @ S @ VH
+    t = mu_y - c * R @ mu_x
+    print(c,R,t)
+    return c, R, t
+
+def affine_fit(src, tgt):
+    """
+    src, tgt: (N, 3) known correspondences
+    returns A (3x3), t (3,)
+    such that (A @ src[i]) + t ≈ tgt[i]
+    """
+    N = len(src)
+
+    # design matrix: [x, y, z, 1] per point  →  shape (N, 4)
+    P = np.hstack([src, np.ones((N, 1))])
+
+    # solve P @ M = tgt  for M (4x3)  — one lstsq call for all 3 dims
+    M, residuals, rank, sv = np.linalg.lstsq(P, tgt, rcond=None)
+
+    A = M[:3].T    # (3, 3)
+    t = M[3]       # (3,)
+
+    return A, t
 
 def LeastSquared(X,y,title):
     print(X.shape,y.shape)
@@ -96,16 +157,25 @@ dense_array=dense_array[1:]
 before=twoD_to_cam_reproject(mde_intrinsic,params,images[1],MDE_filter(mde_input,df))
 after=twoD_to_cam_reproject(mde_intrinsic,params,images[1],MDE_filter(mde_input,df))
 dense=twoD_to_cam_reproject(mde_intrinsic,params,images[1],MDE_filter(mde_input,dense_array))
-x_scale=LeastSquared(before[:,[0]],df[:,2],"x")
-y_scale=LeastSquared(before[:,[1]],df[:,3],"y")
-z_scale=LeastSquared(before[:,[2]],df[:,4],"z")
-after[:,0]=after[:,0]*x_scale[0]+x_scale[1]
-after[:,1]=after[:,1]*y_scale[0]+y_scale[1]
-after[:,2]=after[:,2]*z_scale[0]+z_scale[1]
+print(before[:,2:].shape)
+s,R,t=umeyama(before[:,2:].T,df[:,2:].T)
+#A,t_rs,_=ransac_affine(before[:,2:],df[:,2:])
+#after[:,2:]=(A@after[:,2:].T).T+t_rs
+#dense[:,2:]=(A@dense[:,2:].T).T+t_rs
+after[:,2:]=(s*(R@after[:,2:].T)+t).T
+dense[:,2:]=(s*(R@dense[:,2:].T)+t).T
+rmse = np.sqrt(np.mean(np.linalg.norm(after - before, axis=1)**2))
+print("rmse=",rmse)
+#x_scale=LeastSquared(before[:,[0]],df[:,2],"x")
+#y_scale=LeastSquared(before[:,[1]],df[:,3],"y")
+#z_scale=LeastSquared(before[:,[2]],df[:,4],"z")
+#after[:,0]=after[:,0]*x_scale[0]+x_scale[1]
+#after[:,1]=after[:,1]*y_scale[0]+y_scale[1]
+#after[:,2]=after[:,2]*z_scale[0]+z_scale[1]
 
-dense[:,0]=dense[:,0]*x_scale[0]+x_scale[1]
-dense[:,1]=dense[:,1]*y_scale[0]+y_scale[1]
-dense[:,2]=dense[:,2]*z_scale[0]+z_scale[1]
+#dense[:,0]=dense[:,0]*x_scale[0]+x_scale[1]
+#dense[:,1]=dense[:,1]*y_scale[0]+y_scale[1]
+#dense[:,2]=dense[:,2]*z_scale[0]+z_scale[1]
 
 print("----------------Visualization--------------------")
 
@@ -121,19 +191,19 @@ def main():
             )
     server.scene.add_point_cloud(
             name="non-finetuned",
-            points=before[:,:3],
+            points=before[:,2:],
             colors=np.array([0,0,255]),
             point_size=.1
             )
     server.scene.add_point_cloud(
             name="finetuned",
-            points=after[:,:3],
+            points=after[:,2:],
             colors=np.array([0,255,0]),
             point_size=.1
             )
     server.scene.add_point_cloud(
             name="dense",
-            points=dense[:,:3],
+            points=dense[:,2:],
             colors=np.array([0,0,0]),
             point_size=.1
             )
