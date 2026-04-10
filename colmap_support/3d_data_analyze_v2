@@ -1,0 +1,429 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "cada2ea5",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "#import pandas as pd\n",
+    "import viser\n",
+    "import viser.extras.colmap as colmap\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "from sklearn.linear_model import LinearRegression\n",
+    "from sklearn.metrics import mean_squared_error, r2_score"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5040b80b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print('------------Done importing libraries--------')\n",
+    "np.set_printoptions(precision=3)\n",
+    "path=\"model/\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "a15a63ec",
+   "metadata": {
+    "lines_to_next_cell": 2
+   },
+   "outputs": [],
+   "source": [
+    "print(\"------------Import MDE data------------------\")\n",
+    "with open('intrinsics.npy','rb') as f:\n",
+    "    mde_intrinsic=np.load(f)\n",
+    "with open('depth.npy','rb') as f:\n",
+    "    mde_input=np.load(f)\n",
+    "print(mde_input.shape,mde_intrinsic.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4867d61b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"---------Import COLMAP data------------------\")\n",
+    "cameras=colmap.read_cameras_binary(path+\"sparse/0/cameras.bin\")\n",
+    "images=colmap.read_images_binary(path+\"sparse/0/images.bin\")\n",
+    "points3D=colmap.read_points3d_binary(path+\"sparse/0/points3D.bin\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4400db02",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"--------Reading points coordinates----------\")\n",
+    "points2D=images[1].xys[images[1].point3D_ids!=-1]\n",
+    "points3D_ids=images[1].point3D_ids[images[1].point3D_ids!=-1]\n",
+    "points3D_coord=[points3D[i].xyz for i in points3D_ids]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "0b81854f",
+   "metadata": {
+    "lines_to_next_cell": 1
+   },
+   "outputs": [],
+   "source": [
+    "print(\"----------------3D to 2D--------------------\")\n",
+    "print(cameras[1].params)\n",
+    "params=cameras[1].params\n",
+    "col_intrinsic=np.array([[params[0],0,params[1]],\n",
+    "                    [0,params[0],params[2]],\n",
+    "                    [0,0,1]])\n",
+    "def world_to_cam_reproject(params,image):\n",
+    "    #'x2d','y2d','xreproj','yreproj','z'\n",
+    "    df=[np.zeros(5)]\n",
+    "    f,cx,cy,k=params\n",
+    "    ROT=np.array(image.qvec2rotmat())\n",
+    "    T=np.array(image.tvec)\n",
+    "    for i in range(len(points3D_coord)):\n",
+    "        p1=np.array(points3D_coord[i]).T\n",
+    "        x2d,y2d=points2D[i]\n",
+    "        xreproj,yreproj,z=ROT@p1+T\n",
+    "        df=np.r_[df,[[x2d,y2d,xreproj,yreproj,z]]]\n",
+    "    df=df[1:]\n",
+    "    return(df)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "b40ebe62",
+   "metadata": {
+    "lines_to_next_cell": 1
+   },
+   "outputs": [],
+   "source": [
+    "def twoD_to_cam_reproject(intrinsic,params,image,depth):\n",
+    "    #\"x2d\",y2d,'x3d','y3d','z'\n",
+    "    f,cx,cy,k=params\n",
+    "    ROT=np.array(image.qvec2rotmat())\n",
+    "    T=np.array(image.tvec)\n",
+    "    print(T)\n",
+    "    p3D_cam = np.linalg.inv(intrinsic) @ depth.T  # normalize\n",
+    "    p3D=np.c_[depth[:,:2],p3D_cam.T]\n",
+    "    return p3D"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "414d7b5e",
+   "metadata": {
+    "lines_to_next_cell": 2
+   },
+   "outputs": [],
+   "source": [
+    "df=world_to_cam_reproject(params,images[1])\n",
+    "print(df)\n",
+    "print(\"----------------Training--------------------\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4f912a02",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "56b68333",
+   "metadata": {
+    "lines_to_next_cell": 1
+   },
+   "outputs": [],
+   "source": [
+    "def umeyama(X, Y):\n",
+    "    \"\"\"\n",
+    "    Estimates the Sim(3) transformation between `X` and `Y` point sets.\n",
+    "\n",
+    "    Estimates c, R and t such as c * R @ X + t ~ Y.\n",
+    "\n",
+    "    Parameters\n",
+    "    ----------\n",
+    "    X : numpy.array\n",
+    "        (m, n) shaped numpy array. m is the dimension of the points,\n",
+    "        n is the number of points in the point set.\n",
+    "    Y : numpy.array\n",
+    "        (m, n) shaped numpy array. Indexes should be consistent with `X`.\n",
+    "        That is, Y[:, i] must be the point corresponding to X[:, i].\n",
+    "    \n",
+    "    Returns\n",
+    "    -------\n",
+    "    c : float\n",
+    "        Scale factor.\n",
+    "    R : numpy.array\n",
+    "        (3, 3) shaped rotation matrix.\n",
+    "    t : numpy.array\n",
+    "        (3, 1) shaped translation vector.\n",
+    "    \"\"\"\n",
+    "    mu_x = X.mean(axis=1).reshape(-1, 1)\n",
+    "    mu_y = Y.mean(axis=1).reshape(-1, 1)\n",
+    "    var_x = np.square(X - mu_x).sum(axis=0).mean()\n",
+    "    cov_xy = ((Y - mu_y) @ (X - mu_x).T) / X.shape[1]\n",
+    "    U, D, VH = np.linalg.svd(cov_xy)\n",
+    "    S = np.eye(X.shape[0])\n",
+    "    if np.linalg.det(U) * np.linalg.det(VH) < 0:\n",
+    "        S[-1, -1] = -1\n",
+    "    c = np.trace(np.diag(D) @ S) / var_x\n",
+    "    R = U @ S @ VH\n",
+    "    t = mu_y - c * R @ mu_x\n",
+    "    print(c,R,t)\n",
+    "    return c, R, t"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "5daf3207",
+   "metadata": {
+    "lines_to_next_cell": 1
+   },
+   "outputs": [],
+   "source": [
+    "def affine_fit(src, tgt):\n",
+    "    \"\"\"\n",
+    "    src, tgt: (N, 3) known correspondences\n",
+    "    returns A (3x3), t (3,)\n",
+    "    such that (A @ src[i]) + t ≈ tgt[i]\n",
+    "    \"\"\"\n",
+    "    N = len(src)\n",
+    "\n",
+    "    # design matrix: [x, y, z, 1] per point  →  shape (N, 4)\n",
+    "    P = np.hstack([src, np.ones((N, 1))])\n",
+    "\n",
+    "    # solve P @ M = tgt  for M (4x3)  — one lstsq call for all 3 dims\n",
+    "    M, residuals, rank, sv = np.linalg.lstsq(P, tgt, rcond=None)\n",
+    "\n",
+    "    A = M[:3].T    # (3, 3)\n",
+    "    t = M[3]       # (3,)\n",
+    "\n",
+    "    return A, t"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4fe24ba7",
+   "metadata": {
+    "lines_to_next_cell": 1
+   },
+   "outputs": [],
+   "source": [
+    "def LeastSquared(X,y,title):\n",
+    "    print(X.shape,y.shape)\n",
+    "    X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.15,shuffle=False)\n",
+    "    regressor = LinearRegression().fit(X_train, y_train)\n",
+    "    weight= regressor.coef_\n",
+    "    bias=regressor.intercept_\n",
+    "    print('done training ',title,'weight', weight,'bias',bias)\n",
+    "    y_pred = regressor.predict(X_test)\n",
+    "\n",
+    "    print(f\"Mean squared error: {mean_squared_error(y_test, y_pred):.2f}\")\n",
+    "    print(f\"Coefficient of determination: {r2_score(y_test, y_pred):.2f}\")\n",
+    "    return [weight,bias]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "be4efccf",
+   "metadata": {
+    "lines_to_next_cell": 1
+   },
+   "outputs": [],
+   "source": [
+    "def MDE_filter(mde_input,filter_array):\n",
+    "    #input: mde row:y column:x att:depth; filter_array:[x,y]\n",
+    "    mde_df=[np.array([0,0,0])]\n",
+    "    for j in filter_array:\n",
+    "        mde_df=np.r_[mde_df,[[int(j[0]),int(j[1]),mde_input[int(j[1]),int(j[0])]]]]\n",
+    "    mde_df=mde_df[1:]\n",
+    "    for i in mde_df:\n",
+    "            i[0]=i[0]*i[2]\n",
+    "            i[1]=i[1]*i[2]\n",
+    "    return mde_df"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "f7bc5cfd",
+   "metadata": {
+    "lines_to_next_cell": 2
+   },
+   "outputs": [],
+   "source": [
+    "dense_array=np.array([[0,0]])\n",
+    "for i in range(0,mde_input.shape[1],50):\n",
+    "    for j in range(0,mde_input.shape[0],50):\n",
+    "        dense_array=np.r_[dense_array,np.array([[i,j]])]\n",
+    "dense_array=dense_array[1:]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "3f6d596e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "before=twoD_to_cam_reproject(mde_intrinsic,params,images[1],MDE_filter(mde_input,df))\n",
+    "after=twoD_to_cam_reproject(mde_intrinsic,params,images[1],MDE_filter(mde_input,df))\n",
+    "dense=twoD_to_cam_reproject(mde_intrinsic,params,images[1],MDE_filter(mde_input,dense_array))\n",
+    "print(before[:,2:].shape)\n",
+    "s,R,t=umeyama(before[:,2:].T,df[:,2:].T)\n",
+    "#A,t_rs,_=ransac_affine(before[:,2:],df[:,2:])\n",
+    "#after[:,2:]=(A@after[:,2:].T).T+t_rs\n",
+    "#dense[:,2:]=(A@dense[:,2:].T).T+t_rs\n",
+    "after[:,2:]=(s*(R@after[:,2:].T)+t).T\n",
+    "dense[:,2:]=(s*(R@dense[:,2:].T)+t).T\n",
+    "rmse = np.sqrt(np.mean(np.linalg.norm(after - before, axis=1)**2))\n",
+    "print(\"rmse=\",rmse)\n",
+    "#x_scale=LeastSquared(before[:,[0]],df[:,2],\"x\")\n",
+    "#y_scale=LeastSquared(before[:,[1]],df[:,3],\"y\")\n",
+    "#z_scale=LeastSquared(before[:,[2]],df[:,4],\"z\")\n",
+    "#after[:,0]=after[:,0]*x_scale[0]+x_scale[1]\n",
+    "#after[:,1]=after[:,1]*y_scale[0]+y_scale[1]\n",
+    "#after[:,2]=after[:,2]*z_scale[0]+z_scale[1]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "2f6c3768",
+   "metadata": {},
+   "source": [
+    "dense[:,0]=dense[:,0]*x_scale[0]+x_scale[1]\n",
+    "dense[:,1]=dense[:,1]*y_scale[0]+y_scale[1]\n",
+    "dense[:,2]=dense[:,2]*z_scale[0]+z_scale[1]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d0cd8b7b",
+   "metadata": {
+    "lines_to_next_cell": 1
+   },
+   "outputs": [],
+   "source": [
+    "print(\"----------------Visualization--------------------\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "94639f5c",
+   "metadata": {},
+   "source": [
+    "print(dense)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "4ca7856d",
+   "metadata": {
+    "lines_to_next_cell": 1
+   },
+   "outputs": [],
+   "source": [
+    "def main():\n",
+    "    server = viser.ViserServer()\n",
+    "    server.scene.add_point_cloud(\n",
+    "            name=\"sparse\",\n",
+    "            points=np.array(points3D_coord),\n",
+    "            colors=np.array([255,0,0]),\n",
+    "            point_size=.5\n",
+    "            )\n",
+    "    server.scene.add_point_cloud(\n",
+    "            name=\"non-finetuned\",\n",
+    "            points=before[:,2:],\n",
+    "            colors=np.array([0,0,255]),\n",
+    "            point_size=.1\n",
+    "            )\n",
+    "    server.scene.add_point_cloud(\n",
+    "            name=\"finetuned\",\n",
+    "            points=after[:,2:],\n",
+    "            colors=np.array([0,255,0]),\n",
+    "            point_size=.1\n",
+    "            )\n",
+    "    server.scene.add_point_cloud(\n",
+    "            name=\"dense\",\n",
+    "            points=dense[:,2:],\n",
+    "            colors=np.array([0,0,0]),\n",
+    "            point_size=.1\n",
+    "            )\n",
+    "\n",
+    "    while True:\n",
+    "        pass"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "2fda157f",
+   "metadata": {
+    "lines_to_next_cell": 2
+   },
+   "outputs": [],
+   "source": [
+    "if __name__==\"__main__\":\n",
+    "    main()"
+   ]
+  }
+ ],
+ "metadata": {
+  "jupytext": {
+   "cell_metadata_filter": "-all",
+   "main_language": "python",
+   "notebook_metadata_filter": "-all"
+  },
+  "kernelspec": {
+   "display_name": "Local Python",
+   "language": "python",
+   "name": "local-python"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "python",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "python3",
+   "version": "3.12.3"
+  },
+  "widgets": {
+   "application/vnd.jupyter.widget-state+json": {
+    "state": {},
+    "version_major": 2,
+    "version_minor": 0
+   }
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
