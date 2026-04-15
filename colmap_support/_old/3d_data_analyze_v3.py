@@ -2,9 +2,13 @@ import numpy as np
 #import pandas as pd
 import viser
 import viser.extras.colmap as colmap
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
+
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.linear_model import Lasso, LassoCV
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import r2_score, mean_squared_error
+
 
 print('------------Done importing libraries--------')
 np.set_printoptions(precision=3)
@@ -89,57 +93,11 @@ sparse=world_to_cam_reproject(params,images[1])[:,2:]
 df=threeD_to_twoD_reproject(col_intrinsic,params,images[1])
 print("----------------Training--------------------")
 
-
-def umeyama(X, Y):
-    """
-    Estimates the Sim(3) transformation between `X` and `Y` point sets.
-
-    Estimates c, R and t such as c * R @ X + t ~ Y.
-
-    Parameters
-    ----------
-    X : numpy.array
-        (m, n) shaped numpy array. m is the dimension of the points,
-        n is the number of points in the point set.
-    Y : numpy.array
-        (m, n) shaped numpy array. Indexes should be consistent with `X`.
-        That is, Y[:, i] must be the point corresponding to X[:, i].
-    
-    Returns
-    -------
-    c : float
-        Scale factor.
-    R : numpy.array
-        (3, 3) shaped rotation matrix.
-    t : numpy.array
-        (3, 1) shaped translation vector.
-    """
-    mu_x = X.mean(axis=1).reshape(-1, 1)
-    mu_y = Y.mean(axis=1).reshape(-1, 1)
-    var_x = np.square(X - mu_x).sum(axis=0).mean()
-    cov_xy = ((Y - mu_y) @ (X - mu_x).T) / X.shape[1]
-    U, D, VH = np.linalg.svd(cov_xy)
-    S = np.eye(X.shape[0])
-    if np.linalg.det(U) * np.linalg.det(VH) < 0:
-        S[-1, -1] = -1
-    c = np.trace(np.diag(D) @ S) / var_x
-    R = U @ S @ VH
-    t = mu_y - c * R @ mu_x
-    print(c,R,t)
-    return c, R, t
-
-def LeastSquared(X,y,title):
-    print(X.shape,y.shape)
-    X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.15,shuffle=False)
-    regressor = LinearRegression().fit(X_train, y_train)
-    weight= regressor.coef_
-    bias=regressor.intercept_
-    print('done training ',title,'weight', weight,'bias',bias)
-    y_pred = regressor.predict(X_test)
-
-    print(f"Mean squared error: {mean_squared_error(y_test, y_pred):.2f}")
-    print(f"Coefficient of determination: {r2_score(y_test, y_pred):.2f}")
-    return [weight,bias]
+def lasso_loss(X, y,predictions, beta, lam):
+    n = len(y)
+    residuals = y - predictions
+    loss = (1 / (2 * n)) * np.sum(residuals ** 2) + lam * np.sum(np.abs(beta))
+    return loss
 
 
 def Polyfit(x,y,degree):
@@ -151,29 +109,13 @@ def Polyfit(x,y,degree):
 def Polyfit_check_degree(x,y):
     for deg in range(1, 7):
         c = np.polyfit(x, y, deg)
-        res = y - np.poly1d(c)(x)
+        pred=np.poly1d(c)(x)
+        res = y - pred
         r2 = 1 - np.sum(res**2) / np.sum((y - y.mean())**2)
+        lambda_loss=lasso_loss(x,y,pred,c,lam=0.5)
         print(f"deg {deg}: R²={r2:.4f}")
+        print(f"deg {deg}: lambdaloss={lambda_loss:.4f}")
 
-
-def affine_fit(src, tgt):
-    """
-    src, tgt: (N, 3) known correspondences
-    returns A (3x3), t (3,)
-    such that (A @ src[i]) + t ≈ tgt[i]
-    """
-    N = len(src)
-
-    # design matrix: [x, y, z, 1] per point  →  shape (N, 4)
-    P = np.hstack([src, np.ones((N, 1))])
-
-    # solve P @ M = tgt  for M (4x3)  — one lstsq call for all 3 dims
-    M, residuals, rank, sv = np.linalg.lstsq(P, tgt, rcond=None)
-
-    A = M[:3].T    # (3, 3)
-    t = M[3]       # (3,)
-
-    return A, t
 
 def MDE_filter(mde_input,filter_array):
     #input: mde row:y column:x att:depth; filter_array:[x,y]
@@ -237,7 +179,12 @@ def main():
             colors=np.array([0,0,0]),
             point_size=.1
             )
-
+    sphere = server.scene.add_icosphere(
+        name="/sphere",
+        radius=0.3,
+        color=(255, 100, 100),
+        position=(0.0, 0.0, 0.0),
+    )
     while True:
         pass
 
