@@ -1,1 +1,4 @@
 
+[submodule "3DtoDepthmap"]
+	path = 3DtoDepthmap
+	url = https://github.com/martivilella/3DtoDepthmap.git
