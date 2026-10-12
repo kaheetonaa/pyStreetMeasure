@@ -14,17 +14,23 @@ print(merge.columns)
 result=[]
 r2max=0
 <<<<<<< HEAD
+<<<<<<< HEAD
 y=merge['mis_2']
 X=merge[['w_dist_'+str(j) for j in range(len(merge.columns)-6)]]
 for i in tqdm(range(1000)):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=i)
 =======
+=======
+>>>>>>> 78e47197e479dd1a2791c7c95229782b143f5fbf
 for i in tqdm(range(1000)):
     y=merge['mis_2']
     X=merge[['w_dist_'+str(j) for j in range(len(merge.columns)-6)]]
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=i)
 
+<<<<<<< HEAD
+>>>>>>> 78e47197e479dd1a2791c7c95229782b143f5fbf
+=======
 >>>>>>> 78e47197e479dd1a2791c7c95229782b143f5fbf
     model = LinearRegression(fit_intercept=True,positive=False)
     model.fit(X_train, y_train)
@@ -40,6 +46,7 @@ for i in tqdm(range(1000)):
 result=np.array(result).mean(axis=0)
 print("Average result(r2,mae,rmse):",result)
 <<<<<<< HEAD
+<<<<<<< HEAD
 print("R2ScoreMax:", r2max)
 print("Intercept:", r2_optimized_model.intercept_)
 print("Coefficients:", r2_optimized_model.coef_)
@@ -49,8 +56,13 @@ df = pd.DataFrame({"pred_width":width})
 df = pd.concat([df,merge],axis=1)
 df.to_csv("Piacenza/pred.csv")
 =======
+=======
+>>>>>>> 78e47197e479dd1a2791c7c95229782b143f5fbf
 print("Intercept:", r2_optimized_model.intercept_)
 print("Intercept:", r2_optimized_model.intercept_)
 print("Coefficients:", r2_optimized_model.coef_)
 
+<<<<<<< HEAD
+>>>>>>> 78e47197e479dd1a2791c7c95229782b143f5fbf
+=======
 >>>>>>> 78e47197e479dd1a2791c7c95229782b143f5fbf

@@ -3,6 +3,7 @@ import subprocess
 import json,urllib.request,requests
 from exif import Image
 <<<<<<< HEAD
+<<<<<<< HEAD
 from src import Equirec2Perspec as E2P
 import cv2
 import numpy as np
@@ -10,6 +11,11 @@ import numpy as np
 equirect_to_perspective=False
 df=pd.DataFrame(pd.read_csv("LC3D/mapillary_02.csv"))
 path="LC3D/img_02/"
+=======
+
+df=pd.DataFrame(pd.read_csv("LC3D/mapillary_01.csv"))
+path="LC3D/img/"
+>>>>>>> 78e47197e479dd1a2791c7c95229782b143f5fbf
 =======
 
 df=pd.DataFrame(pd.read_csv("LC3D/mapillary_01.csv"))
@@ -37,6 +43,7 @@ for i in range(len(list_id)):
         img_url=json.loads(_u.read().decode())["thumb_original_url"]
         print(img_url)
 <<<<<<< HEAD
+<<<<<<< HEAD
     with open(path+'{}.jpg'.format(str(i)), 'wb') as handler:
         image_data = requests.get(img_url, stream=True).raw
         if equirect_to_perspective==True:
@@ -46,6 +53,10 @@ for i in range(len(list_id)):
             image_data= equ.GetPerspective(120, 180, 0, 1000, 1000)
             success, encoded_image = cv2.imencode('.jpg', image_data)
             image_data=encoded_image.tobytes()
+=======
+    with open(path+'{}.jpg'.format(str(_id)), 'wb') as handler:
+        image_data = requests.get(img_url, stream=True).content
+>>>>>>> 78e47197e479dd1a2791c7c95229782b143f5fbf
 =======
     with open(path+'{}.jpg'.format(str(_id)), 'wb') as handler:
         image_data = requests.get(img_url, stream=True).content
