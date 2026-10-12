@@ -7,9 +7,15 @@ from cloudComPy.minimalBoundingBox import findRotation
 #------- hyperparameter-------
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 dist_close=6
 dist_far=18
 n_step=3
+=======
+dist_close=10
+dist_far=20
+n_step=2
+>>>>>>> 78e47197e479dd1a2791c7c95229782b143f5fbf
 =======
 dist_close=10
 dist_far=20
