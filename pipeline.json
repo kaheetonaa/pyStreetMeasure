@@ -1,0 +1,17 @@
+{
+    "pipeline": [
+        {
+            "type": "readers.ply",
+            "filename": "reconstruction.ply"
+        },
+        {
+            "type": "filters.projpipeline",
+            "coord_op": "+proj=pipeline +step +inv +proj=topocentric +lat_0= 21.03979217169744 +lon_0=105.84181079717412 +h_0=0.0 +ellps=WGS84 +step +inv +proj=cart +ellps=WGS84 +step +proj=utm +zone=48 +ellps=WGS84",
+	    "out_srs": "EPSG:32648"
+        },
+        {
+            "type": "writers.ogr",
+            "filename": "ecef_output.shp"
+        }
+    ]
+}
