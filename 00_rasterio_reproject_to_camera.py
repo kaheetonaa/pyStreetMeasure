@@ -9,21 +9,22 @@ import matplotlib.pyplot as plt
 from pyproj import Transformer
 from scipy.spatial.transform import Rotation as R
 import numpy as np
+import math
 
 #step 1: check camera coord, raster coord, plot them
-img_name="DJI_20260730112036_0010.jpg"
+img_name="DJI_20260730112036_0010.jpg" #summerschool data
 img_lat=45.96045316666667
 img_lon=7.919238027777778
 img_omega=0.07007375125380845
 img_phi=0.01607208000648593
-img_kappa=12.919218966738043
+img_kappa=12.919218966738043+90# +90 because of rotation
 img_w=8192
 img_h=5460
 img_fx=5460.92311
 img_fy=5460.92311
 img_alt=2143.776
 img_rel_alt=152.903
-dataset = rasterio.open('LC3D/w50540_s10.tif')
+dataset = rasterio.open('LC3D/w50540_s10.tif')#tinyitaly data
 print(dataset.crs)
 print(dataset.bounds)
 print(dataset.width,dataset.height)
@@ -46,24 +47,38 @@ print(dataset.index(img_pos[0],img_pos[1]))
 
 img_eul_ang=[img_omega,img_phi,img_kappa]
 Rot = R.from_euler("xyz", img_eul_ang, degrees=True).as_matrix()
-print(type(Rot))
 trans = [-img_pos[0],-img_pos[1],-img_alt]
 K_intr = np.array([[img_fx,0,img_w/2],
                [0,img_fy,img_h/2],
                [0,0,1]])
+
+
 #filter pixel in +-125m with 10m step
 depth_reference=np.array([[-9999,-9999,-9999]])
-for _x in np.arange(img_pos[0]-125,img_pos[0]+125,10):
-    for _y in np.arange(img_pos[1]-125,img_pos[1]+125,10):
+for _x in np.arange(img_pos[0]-500,img_pos[0]+500,10):
+    for _y in np.arange(img_pos[1]-500,img_pos[1]+500,10):
         _row,_col=dataset.index(_x,_y)
-        #print(_x,_y,dataset_height[_row,_col])
-        _pos=np.array([_x,_y,dataset_height[_row,_col]])
-        uv=K_intr@(Rot@(_pos+trans))
-        uv[:2]=uv[:2]/uv[2]
-        uv=uv.reshape(1,3)
-        depth_reference=np.append(depth_reference,uv,axis=0)
-depth_reference=depth_reference[1:]
+        if (dataset_height[_row,_col]>0):
+            _pos=np.array([_x,_y,dataset_height[_row,_col]])
+            uv=K_intr@(Rot@(_pos+trans))
+            uv[:2]=uv[:2]/uv[2]
+            uv=uv.reshape(1,3)
+            depth_reference=np.append(depth_reference,uv,axis=0)
 
+
+depth_reference=depth_reference[1:]
+depth_reference=depth_reference[depth_reference[:,0]>0]
+depth_reference=depth_reference[depth_reference[:,0]<img_w]
+depth_reference=depth_reference[depth_reference[:,1]>0]
+depth_reference=depth_reference[depth_reference[:,1]<img_h]
+
+def normalize(_arr:np.array):
+    return (_arr-_arr.min())/(_arr.max()-_arr.min())
+
+print(depth_reference)
+
+plt.scatter(depth_reference[:,0],depth_reference[:,1],c=normalize(depth_reference[:,2]))
+plt.show()
 
 #step 3: calculate depth
 
