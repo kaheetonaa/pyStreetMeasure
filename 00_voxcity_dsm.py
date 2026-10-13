@@ -5,13 +5,13 @@ import ee
 ee.Authenticate()
 ee.Initialize(project='ee-kuquanghuylcb')
 
-_lat=[45.90219,45.88690]#min,max
-_lng=[8.76709,8.79112]#min,max
+_lat=[45.89338,45.90736]#min,max
+_lng=[7.95181,7.98440]#min,max
 
 
 rectangle_vertices = [
-    (_lng[0], _lat[0]), (_lng[0], _lat[1]),
-    (_lng[1], _lat[1]), (_lng[1], _lat[0]),
+    (_lng[0], _lat[0]), (_lng[1], _lat[0]),
+    (_lng[1], _lat[1]), (_lng[0], _lat[1]),
 ]
 meshsize=10
 model = get_voxcity(
