@@ -16,8 +16,8 @@ img_name="DJI_20260730112036_0010.jpg" #summerschool data
 img_lat=45.96045316666667
 img_lon=7.919238027777778
 img_omega=0.07007375125380845
-img_phi=0.01607208000648593
-img_kappa=12.919218966738043+90# +90 because of rotation
+img_phi=0.01607208000648593+180# +180 because the camera face down
+img_kappa=12.919218966738043# +90 because of rotation
 img_w=8192
 img_h=5460
 img_fx=5460.92311
@@ -76,7 +76,7 @@ def normalize(_arr:np.array):
 
 print(depth_reference)
 
-plt.scatter(depth_reference[:,0],depth_reference[:,1],c=normalize(depth_reference[:,2]))
+plt.scatter(depth_reference[:,0],depth_reference[:,1],c=normalize(depth_reference[:,2]),cmap="Greys")
 plt.show()
 
 #step 4: export to npy
