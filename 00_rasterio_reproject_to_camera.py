@@ -51,7 +51,8 @@ trans = [-img_pos[0],-img_pos[1],-img_alt]
 K_intr = np.array([[img_fx,0,img_w/2],
                [0,img_fy,img_h/2],
                [0,0,1]])
-#find pixel in +-125m with 10m step
+#filter pixel in +-125m with 10m step
+depth_reference=np.array([[-9999,-9999,-9999]])
 for _x in np.arange(img_pos[0]-125,img_pos[0]+125,10):
     for _y in np.arange(img_pos[1]-125,img_pos[1]+125,10):
         _row,_col=dataset.index(_x,_y)
@@ -59,8 +60,9 @@ for _x in np.arange(img_pos[0]-125,img_pos[0]+125,10):
         _pos=np.array([_x,_y,dataset_height[_row,_col]])
         uv=K_intr@(Rot@(_pos+trans))
         uv[:2]=uv[:2]/uv[2]
-        print(uv)
-
+        uv=uv.reshape(1,3)
+        depth_reference=np.append(depth_reference,uv,axis=0)
+depth_reference=depth_reference[1:]
 
 
 #step 3: calculate depth
