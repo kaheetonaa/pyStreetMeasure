@@ -12,6 +12,7 @@ from torch_uncertainty.metrics.regression import MeanSquaredErrorInverse
 from torch.utils.data import TensorDataset
 import matplotlib.pyplot as plt
 import cv2
+
 pred=np.load('UAVMapping/pred.npy')
 true=np.load('UAVMapping/true.npy')
 pred=cv2.resize(pred,(true.shape[1],true.shape[0]),interpolation=cv2.INTER_CUBIC)

@@ -52,7 +52,7 @@ K_intr = np.array([[img_fx,0,img_w/2],
                [0,img_fy,img_h/2],
                [0,0,1]])
 
-
+#step 3: calculate depth
 #filter pixel in +-125m with 10m step
 depth_reference=np.array([[-9999,-9999,-9999]])
 for _x in np.arange(img_pos[0]-500,img_pos[0]+500,10):
@@ -64,7 +64,6 @@ for _x in np.arange(img_pos[0]-500,img_pos[0]+500,10):
             uv[:2]=uv[:2]/uv[2]
             uv=uv.reshape(1,3)
             depth_reference=np.append(depth_reference,uv,axis=0)
-
 
 depth_reference=depth_reference[1:]
 depth_reference=depth_reference[depth_reference[:,0]>0]
@@ -80,5 +79,5 @@ print(depth_reference)
 plt.scatter(depth_reference[:,0],depth_reference[:,1],c=normalize(depth_reference[:,2]))
 plt.show()
 
-#step 3: calculate depth
-
+#step 4: export to npy
+np.save("LC3D/height-ref.npy",depth_reference)
