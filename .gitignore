@@ -46,4 +46,5 @@ TPG
 output
 __marimo__
 pretrained_model
-lightning_logs
+lightning_log*
+MoGes
