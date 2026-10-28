@@ -14,16 +14,16 @@ import pandas as pd
 #step 0 all attribute
 
 
-img_omega=0.07007375125380845
-img_phi=0.01607208000648593+180# +180 because the camera face down
-img_kappa=12.919218966738043# +90 because of rotation
+img_omega=180-179.92986808165162
+img_phi=-0.015833472534527618# +180 because the camera face down
+img_kappa=167.27655197819288-90# +90 because of rotation
 img_w=8192
 img_h=5460
 img_fx=5460.92311
 img_fy=5460.92311
-img_lat=45.96045316666667
-img_lon=7.919238027777778
-img_alt=2143.776
+img_lat=45.96379205555556
+img_lon=7.923466638888889
+img_alt=2072.714
 
 dataset = rasterio.open('LC3D/w50540_s10.tif')#tinyitaly data
 
@@ -47,13 +47,16 @@ K_intr = np.array([[img_fx,0,img_w/2],
 
 
 #step 1 load npy image
-depth=np.load("LC3D/rescale.npy")
+depth=np.load("LC3D/rescale-b.npy")
+print(depth)
+plt.imshow(depth)
+plt.show()
 print(depth.shape)
 #step 2 column row to u v
 pos=[]
 for _v in range(0,depth.shape[0],50):
     for _u in range(0,depth.shape[1],50):
-        _uv=np.array([_u,depth.shape[0]-_v,depth[_v,_u]])
+        _uv=np.array([_u,_v,depth[_v,_u]])
         _uv[:2]=_uv[:2]*_uv[2]
         pos+=[np.linalg.inv(Rot)@(np.linalg.inv(K_intr)@_uv)-trans]
         print(_u,_v)
