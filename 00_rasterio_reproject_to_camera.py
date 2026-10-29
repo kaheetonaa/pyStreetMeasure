@@ -17,14 +17,14 @@ img_lat=45.96379205555556
 img_lon=7.923466638888889
 img_omega= -179.92986808165162
 img_phi=-0.015833472534527618# +180 because the camera face down
-img_kappa=167.27655197819288+90# +90 because of rotation
+img_kappa=167.27655197819288# +90 because of rotation
 img_w=8192
 img_h=5460
 img_fx=5460.92311
 img_fy=5460.92311
 img_alt=2072.714
 img_rel_alt=82.948
-dataset = rasterio.open('LC3D/w50540_s10.tif')#tinyitaly data
+dataset = rasterio.open('LC3D/w50540_s10_ellipsoid.tif')#tinyitaly data
 print(dataset.crs)
 print(dataset.bounds)
 print(dataset.width,dataset.height)

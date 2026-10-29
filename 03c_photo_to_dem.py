@@ -25,7 +25,7 @@ img_lat=45.96379205555556
 img_lon=7.923466638888889
 img_alt=2072.714
 
-dataset = rasterio.open('LC3D/w50540_s10.tif')#tinyitaly data
+dataset = rasterio.open('LC3D/w50540_s10_ellipsoid.tif')#tinyitaly data
 
 def convert_projection(_coord_in,_epsg_in:str,_epsg_out:str):
         #_coord_in: (latitude,longitude)

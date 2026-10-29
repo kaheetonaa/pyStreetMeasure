@@ -26,33 +26,37 @@ def cal_dist(_a:list,_b:list):
 for i in range(true.shape[0]):
     _x,_y=int(true[i][0]),int(true[i][1])
     #_pred += [pred[_y+_j, _x+_k] for _j in range(-2, 3) for _k in range(-2, 3)]
-    _pred += [_x/8192,_y/5460,pred[_y, _x]]
+    _pred += [pred[_y, _x]]#_x/8192,_y/5460,
     _true+=[true[i][2]]
 print(pred.shape) #y,x
 #plt.scatter(_pred,_true)
 #plt.show()
 
-_pred,_true=torch.tensor(_pred).reshape(-1,3),torch.tensor(_true)
-print(_pred)
+_pred,_true=torch.tensor(_pred).reshape(-1,1),torch.tensor(_true)
+
 pred_train,pred_test,true_train,true_test=train_test_split(
-    _pred, _true, test_size=0.5, random_state=42)
+    _pred, _true, test_size=0.3, random_state=42)
 
 pred_val,pred_test,true_val,true_test=train_test_split(
 pred_test,true_test,test_size=0.5,random_state=42
 )
 print(pred_train.shape,true_train.shape)
 
+
 train_ds = TensorDataset(pred_train, true_train)
 val_ds = TensorDataset(pred_val, true_val)
 test_ds = TensorDataset(pred_test, true_test)
 
 
-model = nn.Linear(in_features=3, out_features=1)
+
+model = nn.Linear(in_features=1, out_features=1)
+
+
 
 def optim_regression(
     model: nn.Module,
 ):
-    return optim.Adam(model.parameters(), lr=6e-1) 
+    return optim.Adam(model.parameters(), lr=5e-1) 
 
 mse_rel_metric = MeanSquaredLogError()
 
@@ -70,14 +74,20 @@ datamodule = LightningDataModule.from_datasets(
     train_ds, val_dataset=val_ds, test_dataset=test_ds, batch_size=64, num_workers=0
 )
 epochs = 5000
+
+
 trainer = TUTrainer(accelerator="cpu", devices=1, max_epochs=epochs, enable_progress_bar=True)
 trainer.fit(model=routine,datamodule=datamodule)
 trainer.test(model=routine, datamodule=datamodule)
 
+
 rows, cols = np.indices((pred.shape[0], pred.shape[1]))
 
-pred=np.stack([cols/8192,rows/5460, pred], axis=-1).astype(np.float32)
-rescale=model(torch.from_numpy(pred).reshape(-1,3))
+
+
+#pred=np.stack([true[0,:],true[1,:], pred], axis=-1).astype(np.float32)
+rescale=model(torch.from_numpy(pred).reshape(-1,1))
+print(rescale.shape)
 rescale=rescale.reshape(pred.shape[0],pred.shape[1])
 rescale=rescale.detach().numpy()
 plt.imshow(rescale)
