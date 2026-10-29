@@ -13,12 +13,16 @@ from torch.utils.data import TensorDataset
 import matplotlib.pyplot as plt
 import cv2
 import math
+
 pred=np.load('LC3D/pred_0092.npy')
 true=np.load('LC3D/height-ref.npy')
-pred=cv2.resize(pred,(8192,5460),interpolation=cv2.INTER_CUBIC)
-pred=(pred-pred.max())/(pred.max()-pred.min())
-_pred,_true=[],[]
 
+pred=cv2.resize(pred,(8192,5460),interpolation=cv2.INTER_CUBIC)
+pred=(pred-pred.min())/(pred.max()-pred.min())
+
+_pred,_true=[],[]
+plt.imshow(pred)
+plt.show()
 def cal_dist(_a:list,_b:list):
     return math.sqrt((_a[0]-_b[0])**2+(_a[1]-_b[1])**2)/math.sqrt((_b[0])**2+(_b[1])**2)
 
@@ -26,16 +30,16 @@ def cal_dist(_a:list,_b:list):
 for i in range(true.shape[0]):
     _x,_y=int(true[i][0]),int(true[i][1])
     #_pred += [pred[_y+_j, _x+_k] for _j in range(-2, 3) for _k in range(-2, 3)]
-    _pred += [pred[_y, _x]]#_x/8192,_y/5460,
+    _pred +=[pred[_y, _x]]#_x/8192,_y/5460,
     _true+=[true[i][2]]
-print(pred.shape) #y,x
-#plt.scatter(_pred,_true)
-#plt.show()
+print(pred.shape,pred.min(),pred.max()) #y,x
+
 
 _pred,_true=torch.tensor(_pred).reshape(-1,1),torch.tensor(_true)
-
+plt.scatter(_pred,_true)
+plt.show()
 pred_train,pred_test,true_train,true_test=train_test_split(
-    _pred, _true, test_size=0.3, random_state=42)
+_pred, _true, test_size=0.5, random_state=42)
 
 pred_val,pred_test,true_val,true_test=train_test_split(
 pred_test,true_test,test_size=0.5,random_state=42
@@ -53,25 +57,23 @@ model = nn.Linear(in_features=1, out_features=1)
 
 
 
-def optim_regression(
-    model: nn.Module,
-):
-    return optim.Adam(model.parameters(), lr=5e-1) 
+def optim_regression(model: nn.Module):
+    return optim.Adam(model.parameters(), lr=3e-1) 
 
 mse_rel_metric = MeanSquaredLogError()
 
 routine = RegressionRoutine(
-    output_dim=1,
-    model=model,
-    loss=mse_rel_metric,
-    optim_recipe=optim_regression(model),
-    dist_family=None,
+output_dim=1,
+model=model,
+loss=mse_rel_metric,
+optim_recipe=optim_regression(model),
+dist_family=None,
 )
 
 #criterion = nn.MSELoss()  # Mean Squared Error Loss
 #optimizer = optim.SGD(model.parameters(), lr=1e-5)  # Stochastic Gradient Descent
 datamodule = LightningDataModule.from_datasets(
-    train_ds, val_dataset=val_ds, test_dataset=test_ds, batch_size=64, num_workers=0
+train_ds, val_dataset=val_ds, test_dataset=test_ds, batch_size=64, num_workers=0
 )
 epochs = 5000
 
@@ -85,7 +87,7 @@ rows, cols = np.indices((pred.shape[0], pred.shape[1]))
 
 
 
-#pred=np.stack([true[0,:],true[1,:], pred], axis=-1).astype(np.float32)
+#pred=np.stack([rows,cols, pred], axis=-1).astype(np.float32)
 rescale=model(torch.from_numpy(pred).reshape(-1,1))
 print(rescale.shape)
 rescale=rescale.reshape(pred.shape[0],pred.shape[1])

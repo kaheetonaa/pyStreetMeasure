@@ -17,7 +17,7 @@ img_lat=45.96379205555556
 img_lon=7.923466638888889
 img_omega= -179.92986808165162
 img_phi=-0.015833472534527618# +180 because the camera face down
-img_kappa=167.27655197819288# +90 because of rotation
+img_kappa=167.27655197819288+90# +90 because of rotation
 img_w=8192
 img_h=5460
 img_fx=5460.92311
@@ -55,7 +55,7 @@ K_intr = np.array([[img_fx,0,img_w/2],
 #step 3: calculate depth
 #filter pixel in +-125m with 10m step
 depth_reference=np.array([[-9999,-9999,-9999]])
-for _x in np.arange(img_pos[0]-100,img_pos[0]+100,10):
+for _x in np.arange(img_pos[0]-250,img_pos[0]+250,10):
     for _y in np.arange(img_pos[1]-100,img_pos[1]+100,10):
         _row,_col=dataset.index(_x,_y)
         if (dataset_height[_row,_col]>0):
@@ -77,7 +77,8 @@ def normalize(_arr:np.array):
 
 print(depth_reference.min(),depth_reference.mean())
 
-plt.scatter(depth_reference[:,0],depth_reference[:,1],c=normalize(depth_reference[:,2]),cmap="Greys")
+plt.scatter(depth_reference[:,0],depth_reference[:,1],c=depth_reference[:,2],cmap="BrBG")
+plt.gca().invert_yaxis()
 plt.show()
 
 #step 4: export to npy

@@ -14,9 +14,9 @@ import pandas as pd
 #step 0 all attribute
 
 
-img_omega=180-179.92986808165162
+img_omega=-179.92986808165162
 img_phi=-0.015833472534527618# +180 because the camera face down
-img_kappa=167.27655197819288-90# +90 because of rotation
+img_kappa=167.27655197819288+90# +90 because of rotation
 img_w=8192
 img_h=5460
 img_fx=5460.92311
@@ -65,53 +65,3 @@ pos=np.array(pos)
 with np.printoptions(suppress=True, precision=3):
     df=pd.DataFrame(pos,columns=["x","y","z"])
     df.to_csv("LC3D/mde_dem.csv")
-
-"""
- def _old():
-    #step 1: check camera coord, raster coord, plot them
-    img_name="DJI_20260730112036_0010.jpg" #summerschool data
-    img_rel_alt=152.903
-    print(dataset.crs)
-    print(dataset.bounds)
-    print(dataset.width,dataset.height)
-    dataset_height=dataset.read(1)
-
-    #reprojected img_position
-    print(img_pos)
-    print(img_pos[0],img_pos[1])
-    print(dataset.index(img_pos[0],img_pos[1]))
-
-    #step 2: reproject all point into camera
-
-    
-    #step 3: calculate depth
-    #filter pixel in +-125m with 10m step
-    depth_reference=np.array([[-9999,-9999,-9999]])
-    for _x in np.arange(img_pos[0]-500,img_pos[0]+500,10):
-        for _y in np.arange(img_pos[1]-500,img_pos[1]+500,10):
-            _row,_col=dataset.index(_x,_y)
-            if (dataset_height[_row,_col]>0):
-                _pos=np.array([_x,_y,dataset_height[_row,_col]])
-                uv=K_intr@(Rot@(_pos+trans))
-                uv[:2]=uv[:2]/uv[2]
-                uv=uv.reshape(1,3)
-                depth_reference=np.append(depth_reference,uv,axis=0)
-
-    depth_reference=depth_reference[1:]
-    depth_reference=depth_reference[depth_reference[:,0]>0]
-    depth_reference=depth_reference[depth_reference[:,0]<img_w]
-    depth_reference=depth_reference[depth_reference[:,1]>0]
-    depth_reference=depth_reference[depth_reference[:,1]<img_h]
-
-    def normalize(_arr:np.array):
-        return (_arr-_arr.min())/(_arr.max()-_arr.min())
-
-    print(depth_reference)
-
-    plt.scatter(depth_reference[:,0],depth_reference[:,1],c=normalize(depth_reference[:,2]),cmap="Greys")
-    plt.show()
-
-    #step 4: export to npy
-    np.save("LC3D/height-ref.npy",depth_reference)
-
-"""
