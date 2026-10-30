@@ -26,7 +26,6 @@ img_lon=7.923466638888889
 img_alt=2072.714
 
 dataset = rasterio.open('LC3D/w50540_s10_ellipsoid.tif')#tinyitaly data
-
 def convert_projection(_coord_in,_epsg_in:str,_epsg_out:str):
         #_coord_in: (latitude,longitude)
         #_epsg_in: input projection (e.g. "EPSG:xxxx")
@@ -47,7 +46,7 @@ K_intr = np.array([[img_fx,0,img_w/2],
 
 
 #step 1 load npy image
-depth=np.load("LC3D/rescale-b.npy")
+depth=np.load("LC3D/rescale-c.npy")
 print(depth)
 plt.imshow(depth)
 plt.show()
@@ -64,4 +63,4 @@ pos=np.array(pos)
 
 with np.printoptions(suppress=True, precision=3):
     df=pd.DataFrame(pos,columns=["x","y","z"])
-    df.to_csv("LC3D/mde_dem_2.csv")
+    df.to_csv("LC3D/mde_dem_4.csv")

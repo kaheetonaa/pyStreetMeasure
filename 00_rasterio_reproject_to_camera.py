@@ -55,8 +55,8 @@ K_intr = np.array([[img_fx,0,img_w/2],
 #step 3: calculate depth
 #filter pixel in +-125m with 10m step
 depth_reference=np.array([[-9999,-9999,-9999]])
-for _x in np.arange(img_pos[0]-200,img_pos[0]+200,7):
-    for _y in np.arange(img_pos[1]-200,img_pos[1]+200,7):
+for _x in np.arange(img_pos[0]-200,img_pos[0]+200,20):
+    for _y in np.arange(img_pos[1]-200,img_pos[1]+200,20):
         _row,_col=dataset.index(_x,_y)
         if (dataset_height[_row,_col]>0):
             if (dataset_height[_row,_col]<3000):

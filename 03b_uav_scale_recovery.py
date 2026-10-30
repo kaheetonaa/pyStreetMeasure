@@ -18,11 +18,11 @@ pred=np.load('LC3D/pred_0092.npy')
 true=np.load('LC3D/height-ref.npy')
 mask=np.load("LC3D/mask-0092.npy")
 
-pred=cv2.resize(pred,(8192,5460),interpolation=cv2.INTER_CUBIC)
+pred=cv2.resize(pred,(8192,5460),interpolation=cv2.INTER_NEAREST)
 pred=(pred-pred.min())/(pred.max()-pred.min())
 
-RADIUS=1
-MASK=1
+RADIUS=100
+MASK=0
 
 _pred,_true=[],[]
 #plt.imshow(mask)
@@ -46,10 +46,10 @@ _pred,_true=torch.tensor(_pred).reshape(-1,1),torch.tensor(_true)
 plt.scatter(_pred,_true)
 plt.show()
 pred_train,pred_test,true_train,true_test=train_test_split(
-_pred, _true, test_size=0.5, random_state=32)
+_pred, _true, test_size=0.3, random_state=42)
 
 pred_val,pred_test,true_val,true_test=train_test_split(
-pred_test,true_test,test_size=0.5,random_state=23
+pred_test,true_test,test_size=0.5,random_state=42
 )
 print(pred_train.shape,true_train.shape)
 
@@ -65,7 +65,7 @@ model = nn.Linear(in_features=1, out_features=1)
 
 
 def optim_regression(model: nn.Module):
-    return optim.Adam(model.parameters(), lr=3e-1) 
+    return optim.Adam(model.parameters(), lr=5e-1) 
 
 mse_rel_metric = MeanSquaredLogError()
 
@@ -82,7 +82,7 @@ dist_family=None,
 datamodule = LightningDataModule.from_datasets(
 train_ds, val_dataset=val_ds, test_dataset=test_ds, batch_size=4, num_workers=0
 )
-epochs = 2000
+epochs = 1000
 
 
 trainer = TUTrainer(accelerator="cpu", devices=1, max_epochs=epochs, enable_progress_bar=True)
