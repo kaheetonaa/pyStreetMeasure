@@ -64,4 +64,4 @@ pos=np.array(pos)
 
 with np.printoptions(suppress=True, precision=3):
     df=pd.DataFrame(pos,columns=["x","y","z"])
-    df.to_csv("LC3D/mde_dem.csv")
+    df.to_csv("LC3D/mde_dem_2.csv")

@@ -24,7 +24,7 @@ img_fx=5460.92311
 img_fy=5460.92311
 img_alt=2072.714
 img_rel_alt=82.948
-dataset = rasterio.open('LC3D/w50540_s10_ellipsoid.tif')#tinyitaly data
+dataset = rasterio.open('LC3D/gem_export_ellipsoid_32.tif')#tinyitaly data
 print(dataset.crs)
 print(dataset.bounds)
 print(dataset.width,dataset.height)
@@ -55,8 +55,8 @@ K_intr = np.array([[img_fx,0,img_w/2],
 #step 3: calculate depth
 #filter pixel in +-125m with 10m step
 depth_reference=np.array([[-9999,-9999,-9999]])
-for _x in np.arange(img_pos[0]-250,img_pos[0]+250,10):
-    for _y in np.arange(img_pos[1]-100,img_pos[1]+100,10):
+for _x in np.arange(img_pos[0]-200,img_pos[0]+200,7):
+    for _y in np.arange(img_pos[1]-200,img_pos[1]+200,7):
         _row,_col=dataset.index(_x,_y)
         if (dataset_height[_row,_col]>0):
             if (dataset_height[_row,_col]<3000):
