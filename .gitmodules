@@ -2,3 +2,6 @@
 [submodule "MoGe"]
 	path = MoGe
 	url = https://github.com/microsoft/MoGe.git
+[submodule "DA2"]
+	path = DA2
+	url = https://github.com/DepthAnything/Depth-Anything-V2
