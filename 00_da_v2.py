@@ -6,7 +6,7 @@ import numpy as np
 import argparse
 
 #---parameters---------------------------------------------------
-parser = argparse.ArgumentParser(description ='Running Depth Anything_v2 model on photo, output as npy data',add_help=True)
+parser = argparse.ArgumentParser(prog="DepthAnythinV2 inference",description ='Running DepthAnythingV2 model on photo, output as npy data',add_help=True)
 parser.add_argument("--input",help="input photo path",type=str,required=True)
 parser.add_argument("--output",help="output npy path",type=str,required=True)
 parser.add_argument("--device",help="device for the inference:cuda, cpu,etc.",type=str,default="cpu")
