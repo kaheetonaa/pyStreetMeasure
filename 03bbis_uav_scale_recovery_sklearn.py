@@ -8,16 +8,23 @@ import matplotlib.pyplot as plt
 import cv2
 import math
 
-pred=np.load('LC3D/pred_0092.npy')
+
+#--------------------------------------------------------------
+#---load image-------------------------------------------------
+pred=np.load('LC3D/pred_DA2.npy')
 true=np.load('LC3D/height-ref.npy')
 mask=np.load("LC3D/mask-0092.npy")
 
+#--------------------------------------------------------------
+#---resize image-------------------------------------------------
 pred=cv2.resize(pred,(8192,5460),interpolation=cv2.INTER_NEAREST)
 pred=(pred-pred.min())/(pred.max()-pred.min())
 
 RADIUS=10
-MASK=0
+MASK=1
 
+#--------------------------------------------------------------
+#---prepare data-------------------------------------------------
 _pred,_true=[],[]
 #plt.imshow(mask)
 #plt.show()
@@ -35,22 +42,25 @@ for i in range(true.shape[0]):
         _true+=[true[i][2]]
 print(pred.shape,pred.min(),pred.max()) #y,x
 
-
 _pred,_true=np.array(_pred).reshape(-1,1),np.array(_true)
 print(np.isnan(_true.any()))
 plt.scatter(_pred,_true)
 plt.show()
-pred_train,pred_test,true_train,true_test=train_test_split(
-_pred, _true, test_size=30, random_state=42)
 
-regressor = LinearRegression().fit(pred_train, true_train)
-val = regressor.predict(pred_test)
+#--------------------------------------------------------------
+#---train and predict scale------------------------------------
+for _random in range(0,100):
+    pred_train,pred_test,true_train,true_test=train_test_split(
+    _pred, _true, test_size=0.3, random_state=_random)
 
-print(f"Mean squared error: {mean_squared_error(val, true_test):.2f}")
-print(f"Coefficient of determination: {r2_score(val, true_test):.2f}")
+    regressor = LinearRegression().fit(pred_train, true_train)
+    val = regressor.predict(pred_test)
 
+    print(f"Mean squared error: {mean_squared_error(val, true_test):.2f}")
+    print(f"Coefficient of determination: {r2_score(val, true_test):.2f}")
 
-
+#--------------------------------------------------------------
+#---reshape and export model-----------------------------------
 rows, cols = np.indices((pred.shape[0], pred.shape[1]))
 
 
