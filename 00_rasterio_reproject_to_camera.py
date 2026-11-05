@@ -10,21 +10,43 @@ from pyproj import Transformer
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 import math
+import argparse
 
+#---parse parameters--------------------------------
+parser=argparse.ArgumentParser(
+                    prog='reproject DEM data to camera',
+                    description='this piece of code would reproject ellipsoidal DEM data to known camera position. The inputs are image and raster DEM with camera position and rotation. The output is a single npy file. Developed for UAV cases',
+                    add_help=True)
+parser.add_argument("--dem",help="ellipsodal dem file path",type=str,default=0,required=True)
+parser.add_argument("--lat",help="Latitude of camera pose",type=float,default=0,required=True)
+parser.add_argument("--lon",help="Longitude of camera pose",type=float,default=0,required=True)
+parser.add_argument("--omega",help="Yaw angle of camera pose in degree",type=float,default=0,required=True)
+parser.add_argument("--phi",help="Pitch angle of camera pose in degree",type=float,default=0,required=True)
+parser.add_argument("--kappa",help="Roll angle of camera pose in degree",type=float,default=0,required=True)
+parser.add_argument("--w",help="Image width in pixel",type=float,default=0,required=True)
+parser.add_argument("--h",help="Image height in pixel",type=float,default=0,required=True)
+parser.add_argument("--fx",help="Focal length x",type=float,default=0,required=True)
+parser.add_argument("--fy",help="Focal length y",type=float,default=0,required=True)
+parser.add_argument("--height_abs",help="Absolute height of camera pose",type=float,default=-9999)
+parser.add_argument("--height_rel",help="Relative height of camera pose",type=float,default=-9999)
+#TODO add algorithm to calculate from relative height of camera pose
+args = parser.parse_args()
+
+#----------------------------------------------------
 #step 1: check camera coord, raster coord, plot them
-img_name="DJI_20260730113144_0092.jpg" #summerschool data
-img_lat=45.96379205555556
-img_lon=7.923466638888889
-img_omega= -179.92986808165162
-img_phi=-0.015833472534527618# +180 because the camera face down
-img_kappa=167.27655197819288+90# +90 because of rotation
-img_w=8192
-img_h=5460
-img_fx=5460.92311
-img_fy=5460.92311
-img_alt=2072.714
-img_rel_alt=82.948
-dataset = rasterio.open('LC3D/gem_export_ellipsoid_32.tif')#tinyitaly data
+
+img_lat=args.lat
+img_lon=args.lon
+img_omega=args.omega 
+img_phi=args.phi
+img_kappa=args.kappa# +90 because of rotation
+img_w=args.w
+img_h=args.h
+img_fx=args.fx
+img_fy=args.fy
+img_alt=args.height_abs
+img_rel_alt=args.height_rel
+dataset = rasterio.open(args.dem)#tinyitaly data
 print(dataset.crs)
 print(dataset.bounds)
 print(dataset.width,dataset.height)
@@ -43,6 +65,7 @@ print(img_pos)
 print(img_pos[0],img_pos[1])
 print(dataset.index(img_pos[0],img_pos[1]))
 
+#----------------------------------------------------
 #step 2: reproject all point into camera
 
 img_eul_ang=[img_omega,img_phi,img_kappa]
@@ -52,6 +75,7 @@ K_intr = np.array([[img_fx,0,img_w/2],
                [0,img_fy,img_h/2],
                [0,0,1]])
 
+#----------------------------------------------------
 #step 3: calculate depth
 #filter pixel in +-125m with 10m step
 depth_reference=np.array([[-9999,-9999,-9999]])
@@ -81,5 +105,6 @@ plt.scatter(depth_reference[:,0],depth_reference[:,1],c=depth_reference[:,2],cma
 plt.gca().invert_yaxis()
 plt.show()
 
+#----------------------------------------------------
 #step 4: export to npy
-np.save("LC3D/height-ref.npy",depth_reference)
+np.save(args.output,depth_reference)

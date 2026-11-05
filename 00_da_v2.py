@@ -6,12 +6,12 @@ import numpy as np
 import argparse
 
 #---parameters---------------------------------------------------
-parser = argparse.ArgumentParser(description ='Running Depth Anything_v2 model on photo, output as npy data')
-parser.add_argument("--input",help="input photo path",type=str)
-parser.add_argument("--output",help="output npy path",type=str)
+parser = argparse.ArgumentParser(description ='Running Depth Anything_v2 model on photo, output as npy data',add_help=True)
+parser.add_argument("--input",help="input photo path",type=str,required=True)
+parser.add_argument("--output",help="output npy path",type=str,required=True)
 parser.add_argument("--device",help="device for the inference:cuda, cpu,etc.",type=str,default="cpu")
-parser.add_argument("--model",help="model path",type=str,default="'DA2/depth_anything_v2_vitl.pth")
-parser.add_argument("--resize",help="resize scale image. e.g. 10%=0.1",type=float,default=0.1)
+parser.add_argument("--model",help="model path",type=str,default="'DA2/depth_anything_v2_vitl.pth",required=True)
+parser.add_argument("--resize",help="resize scale image. e.g. 0.1 for rescale 10 times smaller",type=float,default=0.1)
 
 #input, output, device, model, resize
 
@@ -43,5 +43,5 @@ raw_img=cv2.resize(raw_img,(_w,_h),interpolation=cv2.INTER_LINEAR)
 # HxW raw depth map in numpy
 depth = model.infer_image(raw_img) 
 np.save(args.output,depth)
-#plt.imshow(depth)
-#plt.show()
+plt.imshow(depth)
+plt.show()
