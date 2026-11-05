@@ -5,3 +5,6 @@
 [submodule "DA2"]
 	path = DA2
 	url = https://github.com/DepthAnything/Depth-Anything-V2
+[submodule "Equirec2Perspec"]
+	path = Equirec2Perspec
+	url = https://github.com/fuenwang/Equirec2Perspec
