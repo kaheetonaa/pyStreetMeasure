@@ -7,21 +7,32 @@ from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 import cv2
 import math
+import argparse
 
-
+parser = argparse.ArgumentParser(prog="Scale Recovery",description ='rescale the MDE data using Least squared algorithm on near-ground-truth data',add_help=True)
+parser.add_argument("--mde",help="MDE prediction npy file path",type=str,required=True)
+parser.add_argument("--near_ground_truth",help="near-ground-truth data npy file path, in case UAV survey, it is reprojected ellipsodial DEM",type=str,required=True)
+parser.add_argument("--mask",help="mask npy file path",type=str,default="NONE")
+parser.add_argument("--radius",help="pixel manhattan distance around near-ground-truth pixel",type=int,default=1)
+parser.add_argument("--output",help="output npy path",type=str,required=True)
+args = parser.parse_args()
 #--------------------------------------------------------------
 #---load image-------------------------------------------------
-pred=np.load('LC3D/pred_DA2.npy')
-true=np.load('LC3D/height-ref.npy')
-mask=np.load("LC3D/mask-0092.npy")
+pred=np.load(args.mde)
+true=np.load(args.near_ground_truth)
+MASK=0
+if args.mask!="NONE":
+    mask=np.load(args.mask)
+    MASK=1
+
+RADIUS=args.radius
 
 #--------------------------------------------------------------
 #---resize image-------------------------------------------------
 pred=cv2.resize(pred,(8192,5460),interpolation=cv2.INTER_NEAREST)
 pred=(pred-pred.min())/(pred.max()-pred.min())
 
-RADIUS=10
-MASK=1
+
 
 #--------------------------------------------------------------
 #---prepare data-------------------------------------------------
@@ -71,4 +82,4 @@ print(rescale.shape)
 rescale=rescale.reshape(pred.shape[0],pred.shape[1])
 plt.imshow(rescale)
 plt.show()
-np.save('LC3D/rescale-c.npy',rescale)
+np.save(args.output,rescale)
