@@ -38,15 +38,15 @@ img_pos=convert_projection((img_lat,img_lon),"EPSG:4326",dataset.crs)
 
 img_eul_ang=[img_omega,img_phi,img_kappa]
 Rot = R.from_euler("xyz", img_eul_ang, degrees=True).as_matrix()
-trans = [-img_pos[0],-img_pos[1],-img_alt]
+trans = [img_pos[0],img_pos[1],img_alt]
 K_intr = np.array([[img_fx,0,img_w/2],
                    [0,img_fy,img_h/2],
                    [0,0,1]])
-
+inv_z=np.array([[1,0,0],[0,1,0],[0,0,1]])
 
 
 #step 1 load npy image
-depth=np.load("LC3D/rescale-c.npy")
+depth=np.load("scale0092.npy")
 print(depth)
 plt.imshow(depth)
 plt.show()
@@ -57,7 +57,7 @@ for _v in range(0,depth.shape[0],50):
     for _u in range(0,depth.shape[1],50):
         _uv=np.array([_u,_v,depth[_v,_u]])
         _uv[:2]=_uv[:2]*_uv[2]
-        pos+=[np.linalg.inv(Rot)@(np.linalg.inv(K_intr)@_uv)-trans]
+        pos+=[np.linalg.inv(Rot)@(np.linalg.inv(inv_z)@(np.linalg.inv(K_intr)@_uv))+trans]
         print(_u,_v)
 pos=np.array(pos)
 

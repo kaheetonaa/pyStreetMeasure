@@ -24,12 +24,13 @@ MASK=0
 if args.mask!="NONE":
     mask=np.load(args.mask)
     MASK=1
-
+    plt.imshow(mask)
+    plt.show()
 RADIUS=args.radius
 
 #--------------------------------------------------------------
 #---resize image-------------------------------------------------
-pred=cv2.resize(pred,(8192,5460),interpolation=cv2.INTER_NEAREST)
+pred=cv2.resize(pred,(8192,5460),interpolation=cv2.INTER_CUBIC)
 pred=(pred-pred.min())/(pred.max()-pred.min())
 
 
@@ -37,24 +38,26 @@ pred=(pred-pred.min())/(pred.max()-pred.min())
 #--------------------------------------------------------------
 #---prepare data-------------------------------------------------
 _pred,_true=[],[]
-#plt.imshow(mask)
-#plt.show()
+
 def cal_dist(_a:list,_b:list):
     return math.sqrt((_a[0]-_b[0])**2+(_a[1]-_b[1])**2)/math.sqrt((_b[0])**2+(_b[1])**2)
 
 #true would have shape [x,y,depth]
 for i in range(true.shape[0]):
     _x,_y=int(true[i][0]),int(true[i][1])
-    if (mask[_y,_x]>0 and MASK==1):
-        break
-    else:
+    if (MASK==1 and mask[_y,_x]>0):
+        continue
+    if (np.isnan(np.mean(pred[(_y-RADIUS):(_y+RADIUS),( _x-RADIUS):(_x+RADIUS)]))):
+        continue
     #_pred += [pred[_y+_j, _x+_k] for _j in range(-2, 3) for _k in range(-2, 3)]
-        _pred +=[np.mean(pred[(_y-RADIUS):(_y+RADIUS),( _x-RADIUS):(_x+RADIUS)])]#(_x-8192/2)/8192,(_y-5460/2)/5460
-        _true+=[true[i][2]]
+    _pred +=[np.mean(pred[(_y-RADIUS):(_y+RADIUS),( _x-RADIUS):(_x+RADIUS)])]#(_x-8192/2)/8192,(_y-5460/2)/5460
+    _true+=[true[i][2]]
 print(pred.shape,pred.min(),pred.max()) #y,x
-
 _pred,_true=np.array(_pred).reshape(-1,1),np.array(_true)
-print(np.isnan(_true.any()))
+print(np.any(np.isnan(_true)))
+print(np.all(np.isfinite(_true)))
+print(np.any(np.isnan(_pred)))
+print(np.all(np.isfinite(_pred)))
 plt.scatter(_pred,_true)
 plt.show()
 
