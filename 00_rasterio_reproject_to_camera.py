@@ -30,6 +30,7 @@ parser.add_argument("--fy",help="Focal length y",type=float,default=0,required=T
 parser.add_argument("--height_abs",help="Absolute height of camera pose",type=float,default=-9999)
 parser.add_argument("--height_rel",help="Relative height of camera pose",type=float,default=-9999)
 parser.add_argument("--z_scale",help="inverse z scale by put -1",type=int,default=1)
+parser.add_argument("--y_scale",help="inverse y scale by put -1",type=int,default=1)
 parser.add_argument("--sample_size",help="sample_size",type=int,default=10)
 parser.add_argument("--output",help="output npy path",type=str,required=True)
 #TODO add algorithm to calculate from relative height of camera pose
@@ -68,7 +69,7 @@ img_pos=convert_projection((img_lat,img_lon),"EPSG:4326",dataset.crs)#reprojecte
 img_eul_ang=[img_omega,img_phi,img_kappa]
 Rot = R.from_euler("xyz", img_eul_ang, degrees=True).as_matrix()
 trans = [img_pos[0],img_pos[1],img_alt]
-inv_z=np.array([[1,0,0],[0,1,0],[0,0,args.z_scale]])
+inv_z=np.array([[1,0,0],[0,args.y_scale,0],[0,0,args.z_scale]])
 K_intr = np.array([[img_fx,0,img_w/2],
                [0,img_fy,img_h/2],
                [0,0,1]])
@@ -77,7 +78,7 @@ K_intr = np.array([[img_fx,0,img_w/2],
 #step 3: calculate depth
 #filter pixel in +-125m with 10m step
 depth_reference=np.array([[-9999,-9999,-9999]])
-for _x in np.arange(img_pos[0]-110,img_pos[0]+110,args.sample_size):
+for _x in np.arange(img_pos[0]-100,img_pos[0]+100,args.sample_size):
     for _y in np.arange(img_pos[1]-100,img_pos[1]+100,args.sample_size):
         _row,_col=dataset.index(_x,_y)
         if (dataset_height[_row,_col]>0):

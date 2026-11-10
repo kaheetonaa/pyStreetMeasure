@@ -3,6 +3,7 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import HistGradientBoostingRegressor,RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 import cv2
@@ -50,7 +51,7 @@ for i in range(true.shape[0]):
     if (np.isnan(np.mean(pred[(_y-RADIUS):(_y+RADIUS),( _x-RADIUS):(_x+RADIUS)]))):
         continue
     #_pred += [pred[_y+_j, _x+_k] for _j in range(-2, 3) for _k in range(-2, 3)]
-    _pred +=[np.mean(pred[(_y-RADIUS):(_y+RADIUS),( _x-RADIUS):(_x+RADIUS)])]#(_x-8192/2)/8192,(_y-5460/2)/5460
+    _pred +=[[np.mean(pred[(_y-RADIUS):(_y+RADIUS),( _x-RADIUS):(_x+RADIUS)])]]#(_x-8192/2)/8192,(_y-5460/2)/5460
     _true+=[true[i][2]]
 print(pred.shape,pred.min(),pred.max()) #y,x
 _pred,_true=np.array(_pred).reshape(-1,1),np.array(_true)
@@ -58,8 +59,8 @@ print(np.any(np.isnan(_true)))
 print(np.all(np.isfinite(_true)))
 print(np.any(np.isnan(_pred)))
 print(np.all(np.isfinite(_pred)))
-plt.scatter(_pred,_true)
-plt.show()
+#plt.scatter(_pred,_true)
+#plt.show()
 
 #--------------------------------------------------------------
 #---train and predict scale------------------------------------
@@ -67,7 +68,8 @@ for _random in range(0,100):
     pred_train,pred_test,true_train,true_test=train_test_split(
     _pred, _true, test_size=0.3, random_state=_random)
 
-    regressor = LinearRegression().fit(pred_train, true_train)
+    #regressor = LinearRegression().fit(pred_train, true_train)
+    regressor = HistGradientBoostingRegressor().fit(pred_train, true_train)
     val = regressor.predict(pred_test)
 
     print(f"Mean squared error: {mean_squared_error(val, true_test):.2f}")
@@ -76,13 +78,15 @@ for _random in range(0,100):
 #--------------------------------------------------------------
 #---reshape and export model-----------------------------------
 rows, cols = np.indices((pred.shape[0], pred.shape[1]))
+print((rows/5460).max())
 
 
-
-#pred=np.stack([rows,cols, pred], axis=-1).astype(np.float32)
+#pred=np.stack([pred,rows/5460,cols/8192], axis=-1).astype(np.float32)
 rescale=regressor.predict((pred).reshape(-1,1))
 print(rescale.shape)
 rescale=rescale.reshape(pred.shape[0],pred.shape[1])
-plt.imshow(rescale)
+fig,ax=plt.subplots(2,1)
+ax[0].imshow(pred)
+ax[1].imshow(rescale)
 plt.show()
 np.save(args.output,rescale)
