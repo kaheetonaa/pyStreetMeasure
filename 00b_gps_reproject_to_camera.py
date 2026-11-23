@@ -10,6 +10,7 @@ from pyproj import Transformer
 from scipy.spatial.transform import Rotation as R
 import numpy as np
 import math
+from uncertainties import ufloat
 
 #step 1: check camera coord, raster coord, plot them
 img_name="DJI_20260730113144_0092.jpg" #summerschool data
@@ -17,15 +18,16 @@ img_lat=45.96379205555556
 img_lon=7.923466638888889
 img_omega=-179.92986808165162
 img_phi=-0.015833472534527618# +180 because the camera face down
-img_kappa=167.2765519781928+90# +90 because of rotation
+img_kappa=167.2765519781928# +90 because of rotation
 img_w=8192
 img_h=5460
 img_fx=5460.92311
 img_fy=5460.92311
 img_alt=2072.714
 img_rel_alt=82.948
+img_overlay=plt.imread("LC3D/img/"+img_name)
 
-dataset = pd.DataFrame(pd.read_csv("LC3D/Punti_SS26_Totale.csv",delimiter=";"))#GPS_Data
+dataset = pd.DataFrame(pd.read_csv("LC3D/GPS_False.csv",delimiter=";"))#GPS_Data
 print(dataset.columns)
 print(dataset)
 
@@ -51,24 +53,33 @@ K_intr = np.array([[img_fx,0,img_w/2],
                [0,0,1]])
 
 #step 3: calculate depth
-depth_reference=np.array([[-9999,-9999,-9999]])
+depth_reference=np.array([[-9999,-9999,-9999,-9999,-9999,-9999]])
 for _i in range(len(dataset.index)):
             _pos=np.array([dataset["Est [m]"][_i],dataset["Nord [m]"][_i],dataset["Quota Elliss. WGS84 [m]"][_i]])#Est [m];Nord [m];Quota Elliss. WGS84 [m]'
             uv=K_intr@(Rot@(_pos+trans))
+            #uncertainties
             uv[:2]=uv[:2]/uv[2]
-            uv=uv.reshape(1,3)
+            uv=np.concatenate((uv,_pos))#add _pos as position 3 4 in uv to validate
+            uv=uv.reshape(1,6)
             depth_reference=np.append(depth_reference,uv,axis=0)
+
+#step 4:uncertainties propagation:
+img_eul_ang_u=np.array([ufloat(3,2) for i in range(3)])
+#Rot_u = R.from_euler("xyz", img_eul_ang_u, degrees=True).as_matrix()
+#print(Rot_u)
 
 depth_reference=depth_reference[1:]
 depth_reference=depth_reference[depth_reference[:,0]>0]
 depth_reference=depth_reference[depth_reference[:,0]<img_w]
 depth_reference=depth_reference[depth_reference[:,1]>0]
 depth_reference=depth_reference[depth_reference[:,1]<img_h]
-#depth_reference[:,1]=img_h-depth_reference[:,1]
+depth_reference[:,1]=img_h-depth_reference[:,1]
 print(depth_reference)
 
-plt.scatter(depth_reference[:,0],img_h-depth_reference[:,1])
+fig,ax=plt.subplots()
+ax.imshow(img_overlay)
+ax.scatter(depth_reference[:,0],depth_reference[:,1])
 plt.show()
 
 #step 4: export to npy
-np.save("LC3D/height-ref.npy",depth_reference)
+np.save("LC3D/gps-height-ref.npy",depth_reference)

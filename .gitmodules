@@ -8,3 +8,6 @@
 [submodule "Equirec2Perspec"]
 	path = Equirec2Perspec
 	url = https://github.com/fuenwang/Equirec2Perspec
+[submodule "RoMaV2"]
+	path = RoMaV2
+	url = https://github.com/Parskatt/RoMaV2.git
