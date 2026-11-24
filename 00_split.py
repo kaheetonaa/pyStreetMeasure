@@ -6,11 +6,15 @@ import pandas as pd
 import shutil
 
 #----- Data structure
-#----metadata.csv: metadata files of all images
+#/path/
+#|
+#|______split-MDE.csv: metadata files of all images
+#|
+#|_______metadata.csv: metadata files of all images
 #   |
-#   |_________MDE: images for MDE inference
+#   |_____________MDE: images for MDE inference
 #   |
-#   |___METASHAPE: images for photogrammetry
+#   |_______METASHAPE: images for photogrammetry
 
 
 #image list
@@ -29,7 +33,7 @@ if len(images)==0:
     quit()
 #image for MDE
 
-img_mde=pd.DataFrame(pd.read_csv("LC3D/img/split-MDE.csv"))
+img_mde=pd.DataFrame(pd.read_csv(path+"split-MDE.csv"))
 metadata=["XMP:GPSLatitude","XMP:RtkStdLat","XMP:GPSLongitude","XMP:RtkStdLon","XMP:AbsoluteAltitude","XMP:RtkStdHgt","XMP:GimbalYawDegree","XMP:GimbalRollDegree","XMP:GimbalPitchDegree","Composite:FocalLength35efl"]
 metadata_export=[]
 
