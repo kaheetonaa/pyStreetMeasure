@@ -9,7 +9,7 @@ device=torch.device("cpu")
 roma_model = roma_outdoor(device=device)
 
 img_A_path="LC3D/img/DJI_20260730113144_0092.jpg"
-img_B_path="LC3D/img/1.jpeg"
+img_B_path="LC3D/img/2.jpeg"
 
 
 
@@ -22,7 +22,7 @@ img_B_rs=cv2.resize(img_B,(560,560),interpolation=cv2.INTER_AREA)
 print("resized!")
 
 matches,certainty=roma_model.match(Image.fromarray(img_A_rs),Image.fromarray(img_B_rs))
-m_sample,c_sample=roma_model.sample(matches,certainty,num=100)
+m_sample,c_sample=roma_model.sample(matches,certainty,num=500)
 print(matches.shape)
 
 kptsA, kptsB = roma_model.to_pixel_coordinates(m_sample, H_A, W_A, H_B, W_B)
